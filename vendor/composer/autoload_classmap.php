@@ -19,6 +19,7 @@ return array(
     'App\\Http\\Controllers\\DashboardController' => $baseDir . '/app/Http/Controllers/DashboardController.php',
     'App\\Http\\Controllers\\LeadsController' => $baseDir . '/app/Http/Controllers/LeadsController.php',
     'App\\Http\\Controllers\\PagesController' => $baseDir . '/app/Http/Controllers/PagesController.php',
+    'App\\Http\\Controllers\\ProfileController' => $baseDir . '/app/Http/Controllers/ProfileController.php',
     'App\\Http\\Controllers\\SubAdminController' => $baseDir . '/app/Http/Controllers/SubAdminController.php',
     'App\\Http\\Controllers\\TeamsController' => $baseDir . '/app/Http/Controllers/TeamsController.php',
     'App\\Http\\Kernel' => $baseDir . '/app/Http/Kernel.php',
