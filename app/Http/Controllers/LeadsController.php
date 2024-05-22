@@ -563,7 +563,7 @@ class LeadsController extends Controller
     public function calculateDistance(Request $request)
     {
         try {
-            $userId = $request->query('Userid');
+            $userId = 15;
             $userLatitude = $request->query('latitude');
             $userLongitude = $request->query('longitude');
     
