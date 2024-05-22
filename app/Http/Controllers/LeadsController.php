@@ -28,8 +28,7 @@ class LeadsController extends Controller
     public function todayVisit(Request $request)
     {
         try {
-            $userId =15;
-            // $request->query('userid');
+            $userId =$request->query('userid');
             $userLatitude = $request->query('latitude');
             $userLongitude = $request->query('longitude');
     

@@ -33,8 +33,8 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
 
                   // Profile-User
         Route::get('profile', 'ProfileController@show')->name('profile.view');
-        Route::get('profile/edit{id}', 'ProfileController@edit')->name('profile.edit');
-        Route::post('profile/update{id}', 'ProfileController@update')->name('profile.update');
+        Route::get('profile/edit/{id}', 'ProfileController@edit')->name('profile.edit');
+        Route::post('profile/update/{id}', 'ProfileController@update')->name('profile.update');
       
             //Sub Admin
             Route::get('sub-admin', 'SubAdminController@index')->name('subadmin.list');

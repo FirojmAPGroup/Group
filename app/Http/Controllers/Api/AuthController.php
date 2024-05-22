@@ -250,12 +250,12 @@ class AuthController extends Controller
             $user = User::find(Auth::guard('api')->user()->id);
             $user->latitude = request()->get('latitude');
             $user->longitude = request()->get('longitude');
-            $user->save();
+            $user->update();
             return response()->json([
                 'code' => 200,
                 'message' => "Location update successfully",
                 'data' => ['user' => $user]
-            ], 200);
+            ], 200); 
         } catch (\Throwable $th) {
             return response()->json([
                 'code' => $th->getCode(),

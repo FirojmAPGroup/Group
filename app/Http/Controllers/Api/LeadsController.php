@@ -9,7 +9,7 @@ use App\Models\Leads;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
-
+use App\Models\User;
 class LeadsController extends Controller
 {
     public function getPendingLeads(){
@@ -56,33 +56,123 @@ class LeadsController extends Controller
 
     }
 
-    public function todayLeads(){
-        try {
-        $user = Auth::guard('api')->user();
-        $leads = Leads::with('hasBusiness')->where('team_id',$user->id)->where('leads.ti_status',0)->whereDate('updated_at',Carbon::today())->paginate(5);
-        if($leads->count()){
-            return response()->json([
-                'code'=>200,
-                'data'=>$leads,
-                'message'=>'leads retrive successfully'
-            ]);
-        } else {
-            return response()->json([
-                'code'=>200,
-                'data'=>[
-                    'leads'=>[]
-                ],
-                'message'=>'leads not found'
-            ]);
+    // public function todayLeads(){
+    //     try {
+    //     $user = Auth::guard('api')->user();
+    //     $leads = Leads::with('hasBusiness')->where('team_id',$user->id)->where('leads.ti_status',0)->whereDate('updated_at',Carbon::today())->paginate(5);
+    //     if($leads->count()){
+    //         return response()->json([
+    //             'code'=>200,
+    //             'data'=>$leads,
+    //             'message'=>'leads retrive successfully'
+    //         ]);
+    //     } else {
+    //         return response()->json([
+    //             'code'=>200,
+    //             'data'=>[
+    //                 'leads'=>[]
+    //             ],
+    //             'message'=>'leads not found'
+    //         ]);
+    //     }
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'code'=>$th->getCode(),
+    //             'data'=>[],
+    //             'message'=>$th->getMessage()
+    //         ]);
+    //     }
+    // }
+    
+    public function todayLeads(Request $request)
+{
+    try {
+        $user = User::find(Auth::guard('api')->user()->id);
+        $userLatitude = $user->latitude; // Ensure latitude field exists in your User model
+        $userLongitude = $user->longitude; // Ensure longitude field exists in your User model
+
+        // Fetch all businesses
+        $businesses = Business::all();
+
+        $businessDistances = [];
+
+        // Calculate the distance for each business
+        foreach ($businesses as $business) {
+            $distance = $this->haversineGreatCircleDistance(
+                $userLatitude,
+                $userLongitude,
+                $business->latitude,
+                $business->longitude
+            );
+
+            // Add business and distance to the array
+            $businessDistances[] = [
+                'business' => $business,
+                'distance' => $distance
+            ];
         }
-        } catch (\Throwable $th) {
-            return response()->json([
-                'code'=>$th->getCode(),
-                'data'=>[],
-                'message'=>$th->getMessage()
-            ]);
+
+        // Sort the businesses by distance in ascending order
+        usort($businessDistances, function ($a, $b) {
+            return $a['distance'] <=> $b['distance'];
+        });
+        $data = [];
+        foreach ($businessDistances as $distanceInfo) {
+            $business = $distanceInfo['business'];
+            $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
+            $data[] = [
+                'full_name' => $fullName,
+                // 'first_name' => $user->first_name ?? 'N/A',
+                // 'last_name' => $user->last_name ?? 'N/A',
+                'email' => $user->email ?? 'N/A',
+                'phone_number' => $user->phone_number ?? 'N/A',
+                'distance' => round($distanceInfo['distance'], 2),
+                'name' => $business->name ?? 'N/A',
+                'owner_first_name' => $business->owner_first_name ?? 'N/A',
+                'owner_last_name' => $business->owner_last_name ?? 'N/A',
+                'owner_email' => $business->owner_email ?? 'N/A',
+                'owner_number' => $business->owner_number ?? 'N/A',
+                'pincode' => $business->pincode ?? 'N/A',
+            ];
         }
+        // Prepare the response data
+        $sortedBusinesses = array_map(function ($item) {
+            return [
+                'business' => $item['business'],
+                'distance' => $item['distance']
+            ];
+        }, $businessDistances);
+
+        return response()->json([
+            'code' => 200,
+            'data' => $data,
+            'message' => 'Businesses retrieved and sorted by distance successfully'
+        ]);
+    } catch (\Throwable $th) {
+        return response()->json([
+            'code' => $th->getCode(),
+            'data' => [],
+            'message' => $th->getMessage()
+        ]);
     }
+}
+
+private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371)
+{
+    $latFrom = deg2rad($latitudeFrom);
+    $lonFrom = deg2rad($longitudeFrom);
+    $latTo = deg2rad($latitudeTo);
+    $lonTo = deg2rad($longitudeTo);
+
+    $latDelta = $latTo - $latFrom;
+    $lonDelta = $lonTo - $lonFrom;
+
+    $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+      cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+    return $angle * $earthRadius;
+}
+
+    
 
     public function leadReport(){
         try {
