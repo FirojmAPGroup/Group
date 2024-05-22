@@ -14,9 +14,9 @@
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
                             <div class="dropdown-menu dropdown-menu-right">
-                                @foreach(Auth::user()->notifications as $notification)
+                                {{-- @foreach(Auth::user()->notifications as $notification)
                                 <a class="dropdown-item" href="#" onclick="markAsRead('{{ $notification->id }}')">{{ $notification->message }}</a>
-                            @endforeach
+                            @endforeach --}}
                             </div>
                             
                             {{-- <ul class="list-unstyled">
