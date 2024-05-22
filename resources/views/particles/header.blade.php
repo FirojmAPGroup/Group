@@ -10,10 +10,16 @@
                     <li class="nav-item dropdown notification_dropdown">
                         <a class="nav-link" href="#" role="button" data-toggle="dropdown">
                             <i class="mdi mdi-bell"></i>
-                            <div class="pulse-css"></div>
+                            {{-- <div class="pulse-css"></div> --}}
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
-                            <ul class="list-unstyled">
+                            <div class="dropdown-menu dropdown-menu-right">
+                                @foreach(Auth::user()->notifications as $notification)
+                                <a class="dropdown-item" href="#" onclick="markAsRead('{{ $notification->id }}')">{{ $notification->message }}</a>
+                            @endforeach
+                            </div>
+                            
+                            {{-- <ul class="list-unstyled">
                                 <li class="media dropdown-item">
                                     <span class="success"><i class="ti-user"></i></span>
                                     <div class="media-body">
@@ -62,7 +68,7 @@
                                     </div>
                                     <span class="notify-time">3:20 am</span>
                                 </li>
-                            </ul>
+                            </ul> --}}
                             <a class="all-notification" href="#">See all notifications <i
                                     class="ti-arrow-right"></i></a>
                         </div>
@@ -87,3 +93,22 @@
         </nav>
     </div>
 </div>
+
+<script>
+    function markAsRead(notificationId) {
+        // Make an AJAX request to mark the notification as read
+        $.ajax({
+            url: '/mark-notification-as-read/' + notificationId,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                // Optionally, update UI or perform other actions upon successful marking as read
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
+    }
+</script>

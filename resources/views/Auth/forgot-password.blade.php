@@ -258,7 +258,7 @@ p {
             </p>
             <p>
               <a href="{{ routePut('app.login') }}">Login Now</a>
-              <a href="">Create an account.</a>
+              {{-- <a href="">Create an account.</a> --}}
             </p>
           </form>
         </div>

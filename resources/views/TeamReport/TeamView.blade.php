@@ -89,6 +89,25 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
+                   {{-- <div class="row ">
+                    <div class="dataTables_length col-sm-6 p-md-0" id="tableTeams_length" style="padding-left: 15px !important">
+                        <label>Show 
+                            <select name="tableTeams_length" aria-controls="tableTeams" class="">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="75">75</option>
+                            <option value="100">100</option>
+                        </select> 
+                        entries</label>
+                    </div>
+                    <div id="tableLeads_filter" 
+                    class="dataTables_filter col-sm-6 p-md-0 d-flex justify-content-end " style="padding-right: 15px !important">
+                         <label>Search:<input type="search" class="" placeholder="" aria-controls="tableLeads">
+                    </label>
+                        </div>
+                   </div> --}}
+
                     <table id="{{ $table }}" class="display table-striped" style="width:100%">
                         <thead>
                             <tr>
@@ -103,6 +122,7 @@
                         </thead>
                         <tbody>
                             @foreach($leads as $lead)
+                           
                             <tr>
                                 <td>{{ $lead['business_name'] }}</td>
                                 <td>{{ $lead['owner_name'] }}</td>
@@ -152,6 +172,15 @@
             var filter = $(this).val();
             dtTable.ajax.url('{{ route("teams.load") }}?/' + filter).load();
         });
+        
+        // $('#tableLeads_filter input[type="search"]').on('keyup', function () {
+        //     dtTable.search(this.value).draw();
+        // });
+
+        // $('#filterSelect').on('change', function() {
+        //     var filter = $(this).val();
+        //     dtTable.ajax.url('{{ route("teams.load") }}?/' + filter).load();
+        // });
     });
 </script>
 @endpush

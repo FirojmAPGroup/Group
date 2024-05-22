@@ -20,7 +20,7 @@
                             <span class="text-danger">*</span>
                         </label>
                         <div class="col-md-10">
-                            <input type="text" name="mobile_number" id="mobile_number" class="form-control" value="{!! $page->mobile_number !!}" required>
+                            <input type="tel" name="mobile_number" id="mobile_number" class="form-control" value="{!! $page->mobile_number !!}" required>
                         </div>
                     </div>
                     <div class="form-group row">
@@ -28,7 +28,7 @@
                             <span class="text-danger">*</span>
                         </label>
                         <div class="col-md-10">
-                            <input type="text" name="email" id="email" class="form-control" value="{!! $page->email !!}" required>
+                            <input type="email" name="email" id="email" class="form-control" value="{!! $page->email !!}" required>
                         </div>
                     </div>
                     <div class="form-group row">
@@ -58,4 +58,22 @@
     <script src="{{ pathAssets('vendor/jquery-validation/jquery.validate.min.js') }}"></script>
 @endpush
 @push('script')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get all input fields
+        var inputs = document.querySelectorAll('input[type="text"], textarea');
+
+        // Function to capitalize the first letter of a string
+        function capitalizeFirstLetter(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Loop through each input field
+        inputs.forEach(function(input) {
+            input.addEventListener('input', function() {
+                this.value = capitalizeFirstLetter(this.value);
+            });
+        });
+    });
+</script>
 @endpush

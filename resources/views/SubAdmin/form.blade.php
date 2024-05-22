@@ -132,5 +132,21 @@
             $(element). $(element).after('');
         }
   }
+  document.addEventListener('DOMContentLoaded', function() {
+        // Get all input fields
+        var inputs = document.querySelectorAll('input[type="text"], textarea');
+
+        // Function to capitalize the first letter of a string
+        function capitalizeFirstLetter(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Loop through each input field
+        inputs.forEach(function(input) {
+            input.addEventListener('input', function() {
+                this.value = capitalizeFirstLetter(this.value);
+            });
+        });
+    });
 </script>
 @endpush

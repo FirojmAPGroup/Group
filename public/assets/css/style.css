@@ -8273,7 +8273,20 @@ svg.pulse-svg {
   background: #593bdb;
   right: 5px;
   top: .6rem;
-  width: .4rem; }
+  width: .4rem;
+ }
+ .dotprofile-css {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.5rem;
+  border-radius: 3.5rem;
+  height: .4rem;
+  position: absolute;
+  background: #000;
+  right: 5px;
+  top: .6rem;
+  width: .4rem;
+ }
   .pulse-css:after, .pulse-css:before {
     content: '';
     width: 1rem;

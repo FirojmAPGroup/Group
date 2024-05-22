@@ -17,21 +17,31 @@
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="name">Name
+                                    <label class="col-lg-2 col-form-label" for="name">Business Name 
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="name" name="name" placeholder="Name" value="{{ $business->name }}" required>
+                                        <input type="text" class="form-control" id="name" name="name" placeholder="Business Name" value="{{ $business->name }}" required>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="owner_name">Owner Name
+                                    <label class="col-lg-2 col-form-label" for="owner_name"> Owner First Name
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="owner_name" name="owner_name" placeholder="Owner Name" value="{{ $business->owner_name }}" required>
+                                        <input type="text" class="form-control" id="owner_first_name" name="owner_first_name" placeholder="Owner First Name" value="{{ $business->owner_first_name }}" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-group row">
+                                    <label class="col-lg-2 col-form-label" for="owner_name">Owner Last Name
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="col-lg-8 col-md-12">
+                                        <input type="text" class="form-control" id="owner_last_name" name="owner_last_name" placeholder="Owner Last Name" value="{{ $business->owner_last_name }}" required>
                                     </div>
                                 </div>
                             </div>
@@ -101,7 +111,7 @@
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="pincode" name="pincode" placeholder="Pincode" value="{{ $business->pincode }}" required>
+                                        <input type="text" class="form-control" id="pincode" name="pincode" placeholder="Pincode" value="{{ $business->pincode }}" required pattern="\d{6}" title="Please enter a 6-digit pincode">
                                     </div>
                                 </div>
                             </div>
@@ -140,6 +150,22 @@
 @endpush
 @push('script')
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get all input fields
+        var inputs = document.querySelectorAll('input[type="text"], textarea');
 
+        // Function to capitalize the first letter of a string
+        function capitalizeFirstLetter(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Loop through each input field
+        inputs.forEach(function(input) {
+            input.addEventListener('input', function() {
+                this.value = capitalizeFirstLetter(this.value);
+            });
+        });
+    });
 </script>
+
 @endpush

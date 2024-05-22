@@ -29,11 +29,12 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
        Route::group(['middleware'=>['user']],function (){
             Route::get('', 'DashboardController@dashboard')->name('app.dashboard');
             Route::post('/today-visits','LeadsController@todayVisit')->name('app.todayVisits');
-            
+            Route::get('/calculateDistance','LeadsController@calculateDistance')->name('app.calculateDistance');
+
                   // Profile-User
-        Route::get('profile', 'ProfileController@index')->name('profile.view');
-        Route::get('profile/edit', 'ProfileController@edit')->name('profile.edit');
-        Route::post('profile/save', 'ProfileController@save')->name('profile.save');
+        Route::get('profile', 'ProfileController@show')->name('profile.view');
+        Route::get('profile/edit{id}', 'ProfileController@edit')->name('profile.edit');
+        Route::post('profile/update{id}', 'ProfileController@update')->name('profile.update');
       
             //Sub Admin
             Route::get('sub-admin', 'SubAdminController@index')->name('subadmin.list');
@@ -82,6 +83,11 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
             Route::post('/bulk-upload','LeadsController@bulkupload')->name("leads.bulkUpload");
             Route::get('/leads/{status}','LeadsController@getLeadsByStatus')->name("leads.getlead");
             Route::post('/leads/{status}','LeadsController@loadLeadsByStatus')->name("leads.getleadList");
+        
+            // notifications
+            Route::post('/mark-notification-as-read/{notificationId}', 'NotificationController@markAsRead')->name('mark-as-read');
+            
+    
         });
     });
 

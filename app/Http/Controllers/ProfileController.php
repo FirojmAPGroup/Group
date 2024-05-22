@@ -14,86 +14,70 @@ use Symfony\Component\HttpKernel\Profiler\Profile;
 
 class ProfileController extends Controller
 {
-    public function index() {
-        $user = Auth::user();
-    
+    public function show()
+    {
+        // Assuming you are using authentication
+        $user = auth()->user();
+
         return view('profile.form', [
             'user' => $user,
-            'title'=>'Profile',
-            'heading' => 'Profile',
+            'title' => 'Profile',
+            'heading' => 'View Profile',
         ]);
     }
-    
-    
-        public function edit($id) {
-            $user = User::findOrFail(decrypt($id));  // Find the user by decrypted ID
-    
-            // Ensure the logged in user can only edit their own profile unless they have specific permissions
-            if ($user->id !== Auth::id() && !Auth::user()->can('edit any profile')) {
-                abort(403, 'Unauthorized action.');
-            }
-    
-            return view('profile.index', [
-                'user' => $user,
-                'heading' => 'Edit Profile'
-            ]);
+
+    public function edit($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            abort(404, 'User not found');
         }
-    //     public function save(Request $request) {
-    //         dd($request->all());
-    //         $user = Auth::user();  // Get the currently authenticated user
-    //         $this->validate($request, [
-    //             'first_name' => 'required|string|max:255',
-    //             'last_name' => 'required|string|max:255',
-    //             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-    //             'phone' => 'required|string|max:255',
-    //             'admin_title' => 'required',
-    //             'password' => 'nullable|string|min:6|max:15'
-    //         ]);
-        
-    //         $user->first_name = $request->first_name;
-    //         $user->last_name = $request->last_name;
-    //         $user->email = $request->email;
-    //         $user->phone_number = $request->phone;
-    //         $user->title = $request->admin_title;
-    //         // Update the password only if a new one is provided
-    //         if ($request->filled('password')) {
-    //             $user->password = Hash::make($request->password);
-    //         }
-    //         $user->save();
-    //         // Redirect with success message
-    //         return $this->resp(1, 'Profile updated successfully', ['url' => route('app.dashboard')]);
-    // }
-    
-    public function save(Request $request) {
-        $userId = Auth::id(); // Get the authenticated user's ID
-        $user = User::findOrFail($userId); // Find the user by ID
-    
-        // Validate the request data
+
+        return view('profile.edit', compact('user'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::find($id);
+
         $this->validate($request, [
+                        'first_name' => 'required|string|max:255',
+                        'last_name' => 'required|string|max:255',
+                        // 'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+                        // 'phone' => 'required|string|max:255',
+                        'admin_title' => 'required',
+                        'gender'=>'required',
+                        // 'password' => 'nullable|string|min:6|max:15|confirmed',
+                        'birth_date'=>'required',
+
+                    ]);
+                
+                    $user->first_name = $request->first_name;
+                    $user->last_name = $request->last_name;
+                    $user->gender = $request->gender;
+                    $user->birth_date = $request->birth_date;
+                    $user->title = $request->admin_title;
+                    // Update the password only if a new one is provided
+                    // if ($request->filled('password')) {
+                    //     $user->password = Hash::make($request->password);
+                    // }
+
+        if (!$user) {
+            abort(404, 'User not found');
+        }
+
+        $validatedData = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            'phone' => 'required|string|max:255',
-            'admin_title' => 'required',
-            'password' => 'nullable|string|min:6|max:15'
+            // 'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'gender' => 'required',
+            'birth_date'=>'required'
         ]);
-    
-        // Update the user's profile data
-        $user->first_name = $request->first_name;
-        $user->last_name = $request->last_name;
-        $user->email = $request->email;
-        $user->phone_number = $request->phone;
-        $user->title = $request->admin_title;
-        
-        // Update the password only if a new one is provided
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
-        }
-        // Save the changes to the user's profile
         $user->save();
-        $messages = " Profile updated successfuly" ;
-        $url = useId(request()->get('id')) ? routePut('app.dashboard') : routePut('profile.view');
-        return $this->resp(1,$messages,['url'=>$url],200);
-        // return redirect()->route('app.dashboard')->with('success', 'Profile updated successfully');
+
+        // $user->update($validatedData);
+        return redirect()->route('app.dashboard')->with('success', 'Profile updated successfully');
     }
+
 }

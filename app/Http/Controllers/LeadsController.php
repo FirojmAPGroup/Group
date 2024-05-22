@@ -7,6 +7,12 @@ use App\Models\Business;
 use App\Helpers\DataTableHelper;
 use App\Models\Leads;
 use App\Models\User;
+use App\Events\LeadAssigned;
+use Illuminate\Support\Facades\Auth;
+use App\Notifications\UserNotifications;
+use App\Helpers\DistanceHelper;
+use Illuminate\Support\Facades\DB;
+
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class LeadsController extends Controller
@@ -18,61 +24,146 @@ class LeadsController extends Controller
             'urlListData'=>routePut('leads.loadlist'),'table' => 'tableLeads'
         ]);
     }
-
-    public function todayVisit(){
+    
+    public function todayVisit(Request $request)
+    {
         try {
-			$q = Business::query();
-            $q = $q->leftJoin('leads','leads.business_id','business.id');
-			if ($srch = DataTableHelper::search()) {
-				$q = $q->where(function ($query) use ($srch) {
-					foreach (['name', 'owner_first_name','owner_last_name', 'owner_email','owner_number','pincode','city','state','country','area'] as $k => $v) {
-						if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-						else $query->orWhere($v, 'like', '%' . $srch . '%');
-					}
-				});
-			}
-            $q->whereDate('leads.visit_date',\Carbon\Carbon::today());
-			$count = $q->count();
-            
-			if (DataTableHelper::sortBy() == 'ti_status') {
-				$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-			} else {
-				$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
-			}
-			$q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
+            $userId =15;
+            // $request->query('userid');
+            $userLatitude = $request->query('latitude');
+            $userLongitude = $request->query('longitude');
+    
+            if ($userId) {
+                $user = User::find($userId);
+                if (!$user) {
+                    return response()->json(['message' => 'User not found']);
+                }
+                $userLatitude = $user->latitude;
+                $userLongitude = $user->longitude;
+            } else {
+                if (is_null($userLatitude) || is_null($userLongitude)) {
+                    return response()->json(['message' => 'Latitude and longitude are required'], 400);
+                }
+            }
+    
+            $businesses = Business::all();
+            $distances = [];
+           
 
-			$data = [];
-			foreach ($q->get() as $single) {
-				$data[] = [
-					// 'id' => '<input type="checkbox" class="chk-multi-check" value="' . $single->getId() . '" />',
-					'name' => putNA($single->name),
-                    'owner_first_name'=>putNA($single->owner_first_name),
-                    'owner_last_name'=>putNA($single->owner_last_name),
-					'owner_email' => putNA($single->owner_email),
-                    'owner_number'=>putNA($single->owner_number),
-                    'pincode'=>putNA($single->pincode),
-                    'city'=>putNA($single->city),
-                    'state'=>putNA($single->state),
-                    'country'=>putNA($single->country),
-                    'area'=>putNA($single->area),
-					'ti_status' => $single->leadStatus(),
-					'created_at' => putNA($single->showCreated(1)),
-					'actions' => putNA(DataTableHelper::listActions([
-                        'edit'=>routePut('leads.edit',['id'=>encrypt($single->getId())])
-                    ]))
-				];
-			}
-
-			return $this->resp(1, '', [
-				'draw' => request('draw'),
-				'recordsTotal' => $count,
-				'recordsFiltered' => $count,
-				'data' => $data
-			]);
-		} catch (\Throwable $th) {
-			return $this->resp(0, exMessage($th), [], 500);
-		}
+            foreach ($businesses as $business) {
+                $distance = DistanceHelper::haversineGreatCircleDistance(
+                    $userLatitude,
+                    $userLongitude,
+                    $business->latitude,
+                    $business->longitude
+                );
+    
+                $distances[] = [
+                    'business' => $business,
+                    'distance' => $distance
+                ];
+            }
+    
+            usort($distances, fn($a, $b) => $a['distance'] <=> $b['distance']);
+    
+            $data = [];
+            foreach ($distances as $distanceInfo) {
+                $business = $distanceInfo['business'];
+                $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
+                $data[] = [
+                    'full_name' => $fullName,
+                    // 'first_name' => $user->first_name ?? 'N/A',
+                    // 'last_name' => $user->last_name ?? 'N/A',
+                    'email' => $user->email ?? 'N/A',
+                    'phone_number' => $user->phone_number ?? 'N/A',
+                    'distance' => round($distanceInfo['distance'], 2),
+                    'name' => $business->name ?? 'N/A',
+                    'owner_first_name' => $business->owner_first_name ?? 'N/A',
+                    'owner_last_name' => $business->owner_last_name ?? 'N/A',
+                    'owner_email' => $business->owner_email ?? 'N/A',
+                    'owner_number' => $business->owner_number ?? 'N/A',
+                    'pincode' => $business->pincode ?? 'N/A',
+                ];
+            }
+            if ($srch = DataTableHelper::search()) {
+                $q = $businesses->where(function ($query) use ($srch) {
+                    foreach (['full_name', 'owner_first_name','owner_last_name', 'owner_email','owner_number','pincode','email','phone_number','distance','name'] as $k => $v) {
+                        if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+                        else $query->orWhere($v, 'like', '%' . $srch . '%');
+                    }
+                });
+            }
+    		$count = $businesses->count();
+            // dd($data);
+            return response()->json([
+                'draw' => intval($request->input('draw')),
+                'recordsTotal' =>$count ,
+                'recordsFiltered' => $count,
+                'data' => $data
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json(['error' => $th->getMessage()], 500);
+        }
     }
+    
+
+    // public function todayVisit(Request $request){
+    //     try {
+
+    //         $q = Business::query();
+            
+    //         $q = $q->leftJoin('leads','leads.business_id','business.id');
+	// 		if ($srch = DataTableHelper::search()) {
+	// 			$q = $q->where(function ($query) use ($srch) {
+	// 				foreach (['name', 'owner_first_name','owner_last_name', 'owner_email','owner_number','pincode','city','state','country','area'] as $k => $v) {
+	// 					if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+	// 					else $query->orWhere($v, 'like', '%' . $srch . '%');
+	// 				}
+	// 			});
+	// 		}
+    //         $q->whereDate('leads.visit_date',\Carbon\Carbon::today());
+	// 		$count = $q->count();
+            
+	// 		if (DataTableHelper::sortBy() == 'ti_status') {
+	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
+	// 		} else {
+	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
+	// 		}
+	// 		$q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
+
+	// 		$data = [];
+	// 		foreach ($q->get() as $single) {
+	// 			$data[] = [
+	// 				// 'id' => '<input type="checkbox" class="chk-multi-check" value="' . $single->getId() . '" />',
+	// 				'name' => putNA($single->name),
+    //                 'owner_first_name'=>putNA($single->owner_first_name),
+    //                 'owner_last_name'=>putNA($single->owner_last_name),
+	// 				'owner_email' => putNA($single->owner_email),
+    //                 'owner_number'=>putNA($single->owner_number),
+    //                 'pincode'=>putNA($single->pincode),
+    //                 'city'=>putNA($single->city),
+    //                 'state'=>putNA($single->state),
+    //                 'country'=>putNA($single->country),
+    //                 'area'=>putNA($single->area),
+	// 				'ti_status' => $single->leadStatus(),
+	// 				'created_at' => putNA($single->showCreated(1)),
+    //                 'distance' => round($single->distance, 2), // Distance in kilometers rounded to 2 decimal places
+	// 				'actions' => putNA(DataTableHelper::listActions([
+    //                     'edit'=>routePut('leads.edit',['id'=>encrypt($single->getId())])
+    //                 ]))
+	// 			];
+	// 		}
+
+	// 		return $this->resp(1, '', [
+	// 			'draw' => request('draw'),
+	// 			'recordsTotal' => $count,
+	// 			'recordsFiltered' => $count,
+	// 			'data' => $data
+	// 		]);
+	// 	} catch (\Throwable $th) {
+	// 		return $this->resp(0, exMessage($th), [], 500);
+	// 	}
+    // }
     public function loadList(){
         try {
 			$q = Business::query();
@@ -138,27 +229,32 @@ class LeadsController extends Controller
         try {
             $rules = [
                 'name'=>'required',
-                'owner_name'=>'required',
-                'owner_number'=>'required',
-                'owner_email'=>'required',
+                'owner_first_name'=>'required',
+                'owner_last_name'=>'required',
+                'owner_number'=>'required|digits:10',
+                'owner_email'=>'required|email',
                 'country'=>'required',
                 'state'=>'required',
                 'city'=>'required',
                 'area'=>'required',
-                'pincode'=>'required',
+                'pincode'=>'required|digits:6',
                 'longitude'=>'required',
                 'latitude'=>'required'
             ];
             $messages = [
                 'name.required'=>"Please Provide Business Name",
-                'owner_name.required'=>"Please Provide Owner Name",
+                'owner_first_name.required'=>"Please Provide Owner Name",
+                'owner_last_name.required'=>"Please Provide Owner Name",
                 'owner_email.required'=>"Please Provide Owner Email",
+                'owner_email.email'=>"please provide valid email",
                 'owner_number.required'=>"Please provide Owner phone number",
+                'owner_number.digits'=>"phone number should be exact :digits number",
                 'country.required'=>"Please provide Country",
                 'state.required'=>"Please provide state",
                 'city.required'=>"Please provide city",
                 'area.required'=>"Please provide area",
                 'pincode.required'=>"please provide pincode",
+                'pincode.digits'=>"pincode number should be exact :digits number",
                 'latitude.required'=>"please provide Latitude",
                 'longitude.required'=>"please provide Longitude",
             ];
@@ -171,7 +267,8 @@ class LeadsController extends Controller
             $business = $business ?? new Business();
 
             $business->name = request()->get('name');
-            $business->owner_first_name = request()->get('owner_name');
+            $business->owner_first_name = request()->get('owner_first_name');
+            $business->owner_last_name = request()->get('owner_last_name');
             $business->owner_email = request()->get('owner_email');
             $business->owner_number = request()->get('owner_number');
             $business->country = request()->get('country');
@@ -196,13 +293,17 @@ class LeadsController extends Controller
         $leads=[];
         // dd($leadsObj);
         foreach ($leadsObj as $key => $value) {
-            $leads[$value->id] = $value->name."-" . $value->area;
+            $leads[$value->id] = $value->name. "-" . $value->area;
         }
+        // .$value->owner_first_name." " .$value->owner_last_name."-" 
         $rawUsers = User::whereDoesntHave('roles')->get();
         $users = [];
         foreach ($rawUsers as $value) {
             $users[$value->id]=$value->first_name." ".$value->last_name;
         }
+         // Notify users
+         $assigningUser = Auth::user(); // Assuming the current logged-in user is assigning the lead
+
         return view('leads.asign',['title'=>'Asign Lead','user'=>$users,'leads'=>$leads]);
     }
 
@@ -286,13 +387,13 @@ class LeadsController extends Controller
 
     public function getLeadsByStatus($status){
             if($status == "pending"){
-                $title = "Pending Leads";
+                $title = "Pending Visits";
                 return view('dashboard.leads',['title'=>$title,'table'=>'tblLeadStatus','urlListData'=>routePut('leads.getleadList',['status'=>$status])]);
             } elseif($status == "completed"){
-                $title = "Completed Leads";
+                $title = "Completed Visits";
                 return view('dashboard.leads',['title'=>$title,'table'=>'tblLeadStatus','urlListData'=>routePut('leads.getleadList',['status'=>$status])]);
             } elseif($status == "total") {
-                $title = "Total Leads";
+                $title = "Total Visits";
                 return view('dashboard.leads',['title'=>$title,'table'=>'tblLeadStatus','urlListData'=>routePut('leads.getleadList',['status'=>$status])]);
             } else {
                 abort(404);
@@ -377,6 +478,155 @@ class LeadsController extends Controller
 		} catch (\Throwable $th) {
 			return $this->resp(0, exMessage($th), [], 500);
 		}
+    }
+    
+    // public function calculateDistance(Request $request)
+    // {
+    //     $userId = 1;
+    //     //  $request->query('userId');
+    //     $userLatitude = $request->query('latitude');
+    //     $userLongitude = $request->query('longitude');
+
+    //     if ($userId) {
+    //         // If user ID is provided, find the user
+    //         $user = User::find($userId);
+
+    //         if (!$user) {
+    //             return response()->json([
+    //                 'message' => 'User not found'
+    //             ], 404);
+    //         }
+
+    //         $userLatitude = $user->latitude;
+    //         $userLongitude = $user->longitude;
+    //     } else {
+    //         if (is_null($userLatitude) || is_null($userLongitude)) {
+    //             return response()->json([
+    //                 'message' => 'Latitude and longitude are required'
+    //             ], 400);
+    //         }
+    //     }
+
+    //     $businesses = Business::all();
+    //     // $businesses = Business::select('name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number')->get();
+
+    //     $distances = [];
+
+    //     foreach ($businesses as $business) {
+    //         $distance = DistanceHelper::haversineGreatCircleDistance(
+    //             $userLatitude,
+    //             $userLongitude,
+    //             $business->latitude,
+    //             $business->longitude
+    //         );
+
+    //         $distances[] = [
+    //             'business' => $business,
+    //             'distance' => $distance
+    //         ];
+    //     }
+
+    //     // Sort distances array by distance
+    //     usort($distances, function ($a, $b) {
+    //         return $a['distance'] <=> $b['distance'];
+    //     });
+
+    //     $nearestBusinesses = [];
+    //     foreach ($distances as $index => $distanceInfo) {
+    //         $nearestBusinesses[] = [
+    //             'index' => $index + 1,
+    //             'business' => $distanceInfo['business'],
+    //             'distance' => $distanceInfo['distance']
+    //         ];
+    //     }
+
+    // // Get user information if available
+    //     $userInformation = [];
+    //     if ($userId) {
+    //         $userInformation = [
+    //             'user_first_name' => $user->first_name,
+    //             'user_last_name' => $user->last_name,
+    //             'user_email' => $user->email,
+    //             'user_phone' => $user->phone_number,
+    //         ];
+    //     }
+
+    //     return response()->json([
+    //         'userInformation'=>$userInformation,
+    //         'nearest_business' => $distances[0]['business'],
+    //         'nearest_distance km' => $distances[0]['distance'],
+    //         'farthest_business' => end($distances)['business'],
+    //         'farthest_distance' => end($distances)['distance'],
+    //         'all_distances' => $distances
+    //     ]);
+
+    // }
+    public function calculateDistance(Request $request)
+    {
+        try {
+            $userId = $request->query('Userid');
+            $userLatitude = $request->query('latitude');
+            $userLongitude = $request->query('longitude');
+    
+            if ($userId) {
+                $user = User::find($userId);
+                if (!$user) {
+                    return response()->json(['message' => 'User not found'], 404);
+                }
+                $userLatitude = $user->latitude;
+                $userLongitude = $user->longitude;
+            } else {
+                if (is_null($userLatitude) || is_null($userLongitude)) {
+                    return response()->json(['message' => 'Latitude and longitude are required'], 400);
+                }
+            }
+    
+            $businesses = Business::all();
+            $distances = [];
+    
+            foreach ($businesses as $business) {
+                $distance = DistanceHelper::haversineGreatCircleDistance(
+                    $userLatitude,
+                    $userLongitude,
+                    $business->latitude,
+                    $business->longitude
+                );
+    
+                $distances[] = [
+                    'business' => $business,
+                    'distance' => $distance
+                ];
+            }
+    
+            usort($distances, fn($a, $b) => $a['distance'] <=> $b['distance']);
+    
+            $data = [];
+            foreach ($distances as $distanceInfo) {
+                $business = $distanceInfo['business'];
+                $data[] = [
+                    'first_name' => $user->first_name ?? 'N/A',
+                    'last_name' => $user->last_name ?? 'N/A',
+                    'email' => $user->email ?? 'N/A',
+                    'phone_number' => $user->phone_number ?? 'N/A',
+                    'distance' => round($distanceInfo['distance'], 2),
+                    'Business name' => $business->name ?? 'N/A',
+                    'owner_first_name' => $business->owner_first_name ?? 'N/A',
+                    'owner_last_name' => $business->owner_last_name ?? 'N/A',
+                    'owner_email' => $business->owner_email ?? 'N/A',
+                    'owner_number' => $business->owner_number ?? 'N/A',
+                    'pincode' => $business->pincode ?? 'N/A',
+                ];
+            }
+            // dd($data);
+            return response()->json([
+                // 'draw' => $request->input('draw'),
+                // 'recordsTotal' => count($data),
+                // 'recordsFiltered' => count($data),
+                'data' => $data
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json(['error' => $th->getMessage()], 500);
+        }
     }
 }
 

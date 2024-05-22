@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
+use App\Notifications\LoginNotification;
+
 class AuthController extends Controller
 {
     use \App\Traits\TraitController;
@@ -27,6 +29,8 @@ class AuthController extends Controller
             if($user->isActive()){
                 if (Hash::check(request('password'), $user->password)) {
 						$auth->login($user, request('rememberme') ? true : false);
+                        $user->notify(new LoginNotification()); // Dispatch login notification
+
 						return redirect(request('backurl', route('app.dashboard')))->with('success', 'Login successful');
 				} else {
                     $error = "Password is incorrect";
@@ -50,6 +54,7 @@ class AuthController extends Controller
     public function forgotPassword(){
             return view('Auth.forgot-password',['title'=>"Reset Password"]);
     }
+    
     public function forgotPasswordSubmit(Request $request){
         $request->validate(['email' => 'required|email']);
 
@@ -60,9 +65,11 @@ class AuthController extends Controller
                     ? back()->with(['status' => __('Password reset link sent successfully!')])
                     : back()->withErrors(['email' => __($status)]);
     }
+
     public function passwordReset($token){
             return view('Auth.reset-password', ['token' => $token]);
     }
+
     public function passwordResetSubmit(Request $request){
         $validator = Validator::make($request->all(),[
             'token' => 'required',

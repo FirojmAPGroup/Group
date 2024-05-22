@@ -14,7 +14,7 @@ class Pages extends Model
     protected $fillable = [
         'title',
         'content',
-        'mobile',
+        'mobile_number',
         'email'
     ];
 

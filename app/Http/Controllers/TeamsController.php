@@ -304,7 +304,7 @@ class TeamsController extends Controller
             $query->select('id', 'owner_first_name','owner_last_name', 'name', 'owner_email');},
              'user' => function ($query) {
             $query->select('id', 'first_name', 'last_name', 'email');}
-        ]);
+        ])->orderBy('created_at', 'desc');;
 
 
         if ($filter == 'completed') {
@@ -314,6 +314,7 @@ class TeamsController extends Controller
         }
 
         // Apply search filter if search query is provided
+        
         if ($search) {
             $leadsQuery->where(function ($query) use ($search) {
                 $query->whereHas('business', function ($query) use ($search) {
@@ -328,12 +329,13 @@ class TeamsController extends Controller
 
         if ($srch = DataTableHelper::search()) {
             $q = $leadsQuery->where(function ($query) use ($srch) {
-                foreach (['email', 'phone_number', 'first_name','last_name'] as $k => $v) {
+                foreach (['business_name', 'owner_name', 'owner_email','assigned_to','assigned_email','assigned_on','assigned_on'] as $k => $v) {
                     if (!$k) $query->where($v, 'like', '%' . $srch . '%');
                     else $query->orWhere($v, 'like', '%' . $srch . '%');
                 }
             });
         }
+        
         $count = $leadsQuery->count();
 
         if (DataTableHelper::sortBy() == 'ti_status') {
@@ -374,6 +376,7 @@ class TeamsController extends Controller
                 'assigned_on' => $lead->created_at->format('Y-m-d'),
             ];
         });
+        // dd($data);
         // Display results in the TeamView blade template
         return view('TeamReport.TeamView', [
             'title'=>'Teams | Reports',

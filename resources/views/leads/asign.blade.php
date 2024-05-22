@@ -3,7 +3,7 @@
 <div class="row page-titles trust-wave mx-0">
     <div class="col-sm-6 p-md-0">
         <div class="welcome-text ">
-            <h4>Asign Lead</h4>
+            <h4>Assign Lead</h4>
         </div>
     </div>
 </div>

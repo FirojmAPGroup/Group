@@ -101,4 +101,9 @@ class User extends Authenticatable implements JWTSubject
         $user = self::where('service_pincode',$pincode)->where('ti_status',1)->first();
         return $user ? $user->getId() : null;
     }
+
+    public function notifications()
+    {
+        return $this->hasMany(CustomNotification::class);
+    }
 }

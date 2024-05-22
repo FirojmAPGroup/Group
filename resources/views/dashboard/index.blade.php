@@ -124,7 +124,7 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h3>Today Visit</h3>
+                <h3>Today's Visit</h3>
             </div>
            
             <div class="card-body">
@@ -132,19 +132,18 @@
                     <table id="{{ $table }}" class="display" style="width:100%">
                         <thead>
                             <tr>
+                                <th data-data="full_name">full name</th>
+                                <th data-data="email">User email</th>
+                                <th data-data="phone_number">Phone No.</th>
+                                <th data-data="distance">distance</th>
+                               
+
                                 <th data-data="name">Business Name</th>
                                 <th data-data="owner_first_name">Owner First Name</th>
                                 <th data-data="owner_last_name">Owner Last Name</th>
                                 <th data-data="owner_email">Owner Email</th>
                                 <th data-data="owner_number">Owner Number</th>
-                                <th data-data="pincode">Pincode</th>
-                                <th data-data="area">Area</th>
-                                <th data-data="city">City</th>
-                                <th data-data="state">State</th>
-                                <th data-data="country">Country</th>
-                                <th data-data="ti_status">Status</th>
-                                <th data-data="created_at">Created at</th>
-                                <th data-data="actions" data-sortable="false">Action</th>
+                              
                             </tr>
                         </thead>
                         <tbody></tbody>

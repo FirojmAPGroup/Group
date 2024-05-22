@@ -16,3 +16,6 @@ use Illuminate\Support\Facades\Broadcast;
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+Broadcast::channel('leads', function ($user) {
+    return true; // Modify this logic to restrict who can listen to this channel
+});
