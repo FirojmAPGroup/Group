@@ -8287,6 +8287,7 @@ svg.pulse-svg {
   top: .6rem;
   width: .4rem;
  }
+ 
   .pulse-css:after, .pulse-css:before {
     content: '';
     width: 1rem;

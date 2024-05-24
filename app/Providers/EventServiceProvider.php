@@ -8,6 +8,7 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 use Illuminate\Support\Facades\Event;
 use App\Events\SubAdminCreated;
 use App\Listeners\SendMailFired;
+use App\Listeners\SendLoginNotification;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -22,8 +23,11 @@ class EventServiceProvider extends ServiceProvider
         ],
         SubAdminCreated::class=>[
             SendMailFired::class
-        ]
-
+        ],
+        Login::class => [
+            SendLoginNotification::class,
+        ],
+        
     ];
 
     /**

@@ -1,3 +1,12 @@
+<style>
+    .list-unstyled {
+        max-height: 300px;
+        overflow-y: scroll;
+        -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        scrollbar-width: none;  /* Firefox */
+    }
+</style>
+
 <div class="header">
     <div class="header-content">
         <nav class="navbar navbar-expand">
@@ -13,14 +22,9 @@
                             {{-- <div class="pulse-css"></div> --}}
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
-                            <div class="dropdown-menu dropdown-menu-right">
-                                {{-- @foreach(Auth::user()->notifications as $notification)
-                                <a class="dropdown-item" href="#" onclick="markAsRead('{{ $notification->id }}')">{{ $notification->message }}</a>
-                            @endforeach --}}
-                            </div>
-                            
-                            {{-- <ul class="list-unstyled">
-                                <li class="media dropdown-item">
+                            @if(isset($notifications) && $notifications->count())
+                            <ul class="list-unstyled"  style="max-height: 300px; overflow-y: scroll;">
+                                {{-- <li class="media dropdown-item">
                                     <span class="success"><i class="ti-user"></i></span>
                                     <div class="media-body">
                                         <a href="#">
@@ -57,21 +61,28 @@
                                         </a>
                                     </div>
                                     <span class="notify-time">3:20 am</span>
-                                </li>
-                                <li class="media dropdown-item">
-                                    <span class="success"><i class="ti-image"></i></span>
-                                    <div class="media-body">
-                                        <a href="#">
-                                            <p><strong> James.</strong> has added a<strong>customer</strong> Successfully
-                                            </p>
-                                        </a>
-                                    </div>
-                                    <span class="notify-time">3:20 am</span>
-                                </li>
-                            </ul> --}}
+                                </li> --}}
+                                @foreach ($notifications as $notification)
+                                    <li class="media dropdown-item">
+                                        <span class="success"><i class="ti-image"></i></span>
+                                        <div class="media-body">
+                                            <a href="#">
+                                                <p class="notification-message"><strong>
+                                                    {{ $notification->data['user_name'] ?? 'Unknown' }}</strong> <strong>{{ $notification->data['message'] }} </strong>
+                                                </p>
+                                            </a>
+                                        </div>
+                                        <span class="notify-time">{{ $notification->created_at->diffForHumans() }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>  
                             <a class="all-notification" href="#">See all notifications <i
-                                    class="ti-arrow-right"></i></a>
+                                class="ti-arrow-right"></i></a>   
+                                @else
+                                <li class="media dropdown-item">No notifications</li>
+                            @endif     
                         </div>
+                       
                     </li>
                     <li class="nav-item dropdown header-profile">
                         <a class="nav-link" href="#" role="button" data-toggle="dropdown">

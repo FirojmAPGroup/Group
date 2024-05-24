@@ -13,6 +13,8 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use Lcobucci\JWT\Validation\Constraint\ValidAt;
+use App\Notifications\LoginNotification;
+use App\Notifications\NewUserNotification;
 
 class AuthController extends Controller
 {
@@ -51,7 +53,13 @@ class AuthController extends Controller
                         'data' => [],
                     ], 401);
                 }
-
+                // notification method
+                $data = [
+                    'message' => ' has logged in successfully!',
+                    'user_name' => $user->first_name . ' ' . $user->last_name,  // Ensure there's a space between first name and last name
+                ];
+        
+                $user->notify(new LoginNotification($data));
                 $user = Auth::guard('api')->user();
                 return response()->json([
                     "code" => 200,
@@ -108,6 +116,14 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password),
             ]);
             // $user->assignRole('user');
+            // notification method 
+            $data = [
+                'message' => ' has created your account  successfully!',
+                'user_name' => $user->first_name . ' ' . $user->last_name,  // Ensure there's a space between first name and last name
+            ];
+    
+            $user->notify(new NewUserNotification($data));
+
             return response()->json([
                 'code' => 200,
                 'message' => 'User created successfully',

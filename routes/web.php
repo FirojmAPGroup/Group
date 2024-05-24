@@ -32,9 +32,11 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
             Route::get('/calculateDistance','LeadsController@calculateDistance')->name('app.calculateDistance');
 
                   // Profile-User
-        Route::get('profile', 'ProfileController@show')->name('profile.view');
-        Route::get('profile/edit/{id}', 'ProfileController@edit')->name('profile.edit');
-        Route::post('profile/update/{id}', 'ProfileController@update')->name('profile.update');
+             Route::get('profile', 'ProfileController@show')->name('profile.view');
+             Route::get('profile/edit/{id}', 'ProfileController@edit')->name('profile.edit');
+             Route::put('profile/update/{id}', 'ProfileController@update')->name('profile.update');
+             Route::get('update-password/{id}', 'ProfileController@updatepassword')->name('profile.updatePassword');
+             Route::Post('update-password/{id}', 'ProfileController@changepassword')->name('profile.changePassword');
       
             //Sub Admin
             Route::get('sub-admin', 'SubAdminController@index')->name('subadmin.list');
@@ -85,7 +87,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
             Route::post('/leads/{status}','LeadsController@loadLeadsByStatus')->name("leads.getleadList");
         
             // notifications
-            Route::post('/mark-notification-as-read/{notificationId}', 'NotificationController@markAsRead')->name('mark-as-read');
+            Route::get('/notifications', ('NotificationController@showNotifications'))->middleware('auth');
             
     
         });

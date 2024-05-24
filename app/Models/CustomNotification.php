@@ -7,10 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class CustomNotification extends Model
 {
-    protected $table = 'custom_notifications'; // Specify the custom table name
+    use HasFactory;
+
+    protected $table = 'custom_notifications';
 
     protected $fillable = [
         'user_id',
-        'message',
+        'type',
+        'data',
+        'read_at',
+    ];
+
+    protected $casts = [
+        'data' => 'array',
     ];
 }

@@ -19,4 +19,8 @@ class Business extends Model
     public function getLeads(){
         return $this->hasLeads;
     }
+    public function notifications()
+    {
+        return $this->hasMany(CustomNotification::class);
+    }
 }

@@ -29,8 +29,6 @@ class AuthController extends Controller
             if($user->isActive()){
                 if (Hash::check(request('password'), $user->password)) {
 						$auth->login($user, request('rememberme') ? true : false);
-                        $user->notify(new LoginNotification()); // Dispatch login notification
-
 						return redirect(request('backurl', route('app.dashboard')))->with('success', 'Login successful');
 				} else {
                     $error = "Password is incorrect";

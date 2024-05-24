@@ -3,6 +3,22 @@
     <link rel="stylesheet" href="{{ pathAssets('vendor/datatables/css/jquery.dataTables.min.css') }}">
 @endpush
 @section('content')
+      <!-- Flash Messages -->
+      @if (session('success'))
+      <div class="alert alert-success">
+          {{ session('success') }}
+      </div>
+  @endif
+  @if ($errors->any())
+      <div class="alert alert-danger">
+          <ul>
+              @foreach ($errors->all() as $error)
+                  <li>{{ $error }}</li>
+              @endforeach
+          </ul>
+      </div>
+  @endif
+  
     <div class="row page-titles trust-wave mx-0">
         <div class="col-sm-6 p-md-0 ">
             <div class="welcome-text ">
@@ -15,15 +31,24 @@
                 <li class="nav-item dropdown notification_dropdown" style="top:-10px !important">
                     <a class="nav-link  trust-wave-buton-edit" href="#" role="button" data-toggle="dropdown">
                         {{-- <i class="mdi mdi-bell"></i> --}}
-                        <i class="fa fa-pencil color-muted "></i> 
+                        <i class="fa fa-pencil color-muted "></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-left" style="padding: 10px">
                         <!-- Dropdown items go here -->
-                        <a href="{{ route('profile.edit', ['id' => $user->id]) }}">
-                            <i class="icon-user"></i>
-                            <span class="ml-2">Update Profile</span>
-                        </a>
+                        <span>
+                            <a href="{{ route('profile.edit', ['id' => $user->id]) }}">
+                                <i class="icon-user"></i>
+                                <span class="ml-2">Update Profile</span>
+                            </a>
+                        </span>
+                        {{-- <span>
+                            <a href="{{ route('profile.changePassword', ['id' => $user->id]) }}">
+                                <i class="icon-key"></i>
+                                <span class="ml-2">Change Password</span>
+                            </a>
+                        </span> --}}
                     </div>
+
                 </li>
             </ul>
         </div>
@@ -142,6 +167,8 @@
             </div>
         </div>
     </div>
+
+
 @endsection
 
 @push('js')

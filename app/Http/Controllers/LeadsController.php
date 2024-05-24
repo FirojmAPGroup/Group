@@ -9,11 +9,11 @@ use App\Models\Leads;
 use App\Models\User;
 use App\Events\LeadAssigned;
 use Illuminate\Support\Facades\Auth;
-use App\Notifications\UserNotifications;
 use App\Helpers\DistanceHelper;
 use Illuminate\Support\Facades\DB;
-
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use App\Notifications\NewBusinessNotification;
+use Illuminate\Support\Facades\Notification;
 
 class LeadsController extends Controller
 {
@@ -28,70 +28,49 @@ class LeadsController extends Controller
     public function todayVisit(Request $request)
     {
         try {
-            $userId =$request->query('userid');
-            $userLatitude = $request->query('latitude');
-            $userLongitude = $request->query('longitude');
-    
-            if ($userId) {
-                $user = User::find($userId);
-                if (!$user) {
-                    return response()->json(['message' => 'User not found']);
-                }
-                $userLatitude = $user->latitude;
-                $userLongitude = $user->longitude;
-            } else {
-                if (is_null($userLatitude) || is_null($userLongitude)) {
-                    return response()->json(['message' => 'Latitude and longitude are required'], 400);
-                }
-            }
-    
+            // Fetch all users from the database
+            $users = User::all();
+            
+            // Fetch all businesses from the database
             $businesses = Business::all();
-            $distances = [];
-           
-
-            foreach ($businesses as $business) {
-                $distance = DistanceHelper::haversineGreatCircleDistance(
-                    $userLatitude,
-                    $userLongitude,
-                    $business->latitude,
-                    $business->longitude
-                );
-    
-                $distances[] = [
-                    'business' => $business,
-                    'distance' => $distance
-                ];
-            }
-    
-            usort($distances, fn($a, $b) => $a['distance'] <=> $b['distance']);
-    
             $data = [];
-            foreach ($distances as $distanceInfo) {
-                $business = $distanceInfo['business'];
-                $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
-                $data[] = [
-                    'full_name' => $fullName,
-                    // 'first_name' => $user->first_name ?? 'N/A',
-                    // 'last_name' => $user->last_name ?? 'N/A',
-                    'email' => $user->email ?? 'N/A',
-                    'phone_number' => $user->phone_number ?? 'N/A',
-                    'distance' => round($distanceInfo['distance'], 2),
-                    'name' => $business->name ?? 'N/A',
-                    'owner_first_name' => $business->owner_first_name ?? 'N/A',
-                    'owner_last_name' => $business->owner_last_name ?? 'N/A',
-                    'owner_email' => $business->owner_email ?? 'N/A',
-                    'owner_number' => $business->owner_number ?? 'N/A',
-                    'pincode' => $business->pincode ?? 'N/A',
-                ];
-            }
-            if ($srch = DataTableHelper::search()) {
-                $q = $businesses->where(function ($query) use ($srch) {
-                    foreach (['full_name', 'owner_first_name','owner_last_name', 'owner_email','owner_number','pincode','email','phone_number','distance','name'] as $k => $v) {
-                        if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-                        else $query->orWhere($v, 'like', '%' . $srch . '%');
+    
+            foreach ($businesses as $business) {
+                $nearestUser = null;
+                $minDistance = PHP_FLOAT_MAX;
+    
+                foreach ($users as $user) {
+                    $distance = $this->haversineGreatCircleDistance(
+                        $user->latitude,
+                        $user->longitude,
+                        $business->latitude,
+                        $business->longitude
+                    );
+    
+                    if ($distance < $minDistance) {
+                        $minDistance = $distance;
+                        $nearestUser = $user;
                     }
-                });
+                }
+    
+                if ($nearestUser) {
+                    $data[] = [
+                        'full_name' => $nearestUser->first_name . ' ' . $nearestUser->last_name,
+                        'email' => $nearestUser->email,
+                        'phone_number' => $nearestUser->phone_number,
+                        'distance' => round($minDistance, 2),
+                        'name' => $business->name,
+                        'owner_first_name' => $business->owner_first_name,
+                        'owner_last_name' => $business->owner_last_name,
+                        'owner_email' => $business->owner_email,
+                        'owner_number' => $business->owner_number,
+                        'pincode' => $business->pincode,
+                    ];
+                }
             }
+    
+            // Sort the data by distance in ascending order
+            usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
     		$count = $businesses->count();
             // dd($data);
             return response()->json([
@@ -262,6 +241,11 @@ class LeadsController extends Controller
                 return $this->resp(0,$validator[0],[],500);
             }
             $business = Business::find(useId(request()->get('id')));
+
+            // notification
+            $isNewBusiness = !$business;
+
+
             $status = $business ? $business->ti_status : 0;
             $business = $business ?? new Business();
 
@@ -281,6 +265,10 @@ class LeadsController extends Controller
             $business->save();
             $messages = useId(request()->get('id')) ?" Lead updated successfuly" :"Lead created successfuly";
             $url = useId(request()->get('id')) ? routePut('leads.list') : routePut('leads.list');
+
+            // Notify all users
+            Notification::send(User::all(), new NewBusinessNotification($business, $isNewBusiness));
+
             return $this->resp(1,$messages,['url'=>$url],200);
         } catch (\Throwable $th) {
             return $this->resp(0,$th->getMessage(),[],500);
@@ -318,7 +306,7 @@ class LeadsController extends Controller
             $lead->save();
             $business->ti_status = 5;
             $business->save();
-            return $this->resp(1,"Lead Asign Successfuly",['url'=>routePut('leads.list')],200);
+            return $this->resp(1,"Lead Asign Successfuly",['url'=>routePut('teams.view')],200);
         } catch (\Throwable $th) {
             return $this->resp(0,$th->getMessage(),[],500);
         }
@@ -563,69 +551,75 @@ class LeadsController extends Controller
     public function calculateDistance(Request $request)
     {
         try {
-            $userId = 15;
-            $userLatitude = $request->query('latitude');
-            $userLongitude = $request->query('longitude');
-    
-            if ($userId) {
-                $user = User::find($userId);
-                if (!$user) {
-                    return response()->json(['message' => 'User not found'], 404);
-                }
-                $userLatitude = $user->latitude;
-                $userLongitude = $user->longitude;
-            } else {
-                if (is_null($userLatitude) || is_null($userLongitude)) {
-                    return response()->json(['message' => 'Latitude and longitude are required'], 400);
-                }
-            }
-    
+            // Fetch all users from the database
+            $users = User::all();
+            
+            // Fetch all businesses from the database
             $businesses = Business::all();
-            $distances = [];
+            $data = [];
     
             foreach ($businesses as $business) {
-                $distance = DistanceHelper::haversineGreatCircleDistance(
-                    $userLatitude,
-                    $userLongitude,
-                    $business->latitude,
-                    $business->longitude
-                );
+                $nearestUser = null;
+                $minDistance = PHP_FLOAT_MAX;
     
-                $distances[] = [
-                    'business' => $business,
-                    'distance' => $distance
-                ];
+                foreach ($users as $user) {
+                    $distance = $this->haversineGreatCircleDistance(
+                        $user->latitude,
+                        $user->longitude,
+                        $business->latitude,
+                        $business->longitude
+                    );
+    
+                    if ($distance < $minDistance) {
+                        $minDistance = $distance;
+                        $nearestUser = $user;
+                    }
+                }
+    
+                if ($nearestUser) {
+                    $data[] = [
+                        'user_full_name' => $nearestUser->first_name . ' ' . $nearestUser->last_name,
+                        'user_email' => $nearestUser->email,
+                        'user_phone_number' => $nearestUser->phone_number,
+                        'distance' => round($minDistance, 2),
+                        'business_name' => $business->name,
+                        'owner_first_name' => $business->owner_first_name,
+                        'owner_last_name' => $business->owner_last_name,
+                        'owner_email' => $business->owner_email,
+                        'owner_number' => $business->owner_number,
+                        'pincode' => $business->pincode,
+                    ];
+                }
             }
     
-            usort($distances, fn($a, $b) => $a['distance'] <=> $b['distance']);
+            // Sort the data by distance in ascending order
+            usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
     
-            $data = [];
-            foreach ($distances as $distanceInfo) {
-                $business = $distanceInfo['business'];
-                $data[] = [
-                    'first_name' => $user->first_name ?? 'N/A',
-                    'last_name' => $user->last_name ?? 'N/A',
-                    'email' => $user->email ?? 'N/A',
-                    'phone_number' => $user->phone_number ?? 'N/A',
-                    'distance' => round($distanceInfo['distance'], 2),
-                    'Business name' => $business->name ?? 'N/A',
-                    'owner_first_name' => $business->owner_first_name ?? 'N/A',
-                    'owner_last_name' => $business->owner_last_name ?? 'N/A',
-                    'owner_email' => $business->owner_email ?? 'N/A',
-                    'owner_number' => $business->owner_number ?? 'N/A',
-                    'pincode' => $business->pincode ?? 'N/A',
-                ];
-            }
-            // dd($data);
             return response()->json([
-                // 'draw' => $request->input('draw'),
-                // 'recordsTotal' => count($data),
-                // 'recordsFiltered' => count($data),
-                'data' => $data
+                'code' => 200,
+                'data' => $data,
+                'message' => 'Data retrieved and sorted by distance successfully'
             ]);
         } catch (\Throwable $th) {
             return response()->json(['error' => $th->getMessage()], 500);
         }
     }
+    
+    private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371)
+    {
+        $latFrom = deg2rad($latitudeFrom);
+        $lonFrom = deg2rad($longitudeFrom);
+        $latTo = deg2rad($latitudeTo);
+        $lonTo = deg2rad($longitudeTo);
+    
+        $latDelta = $latTo - $latFrom;
+        $lonDelta = $lonTo - $lonFrom;
+    
+        $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+          cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+        return $angle * $earthRadius;
+    }
+    
+    
 }
 

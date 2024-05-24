@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\NewLeadNotification;
 class LeadsController extends Controller
 {
     public function getPendingLeads(){
@@ -212,6 +214,7 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
     public function createLead(){
         try {
         //    dd(request()->all());
+       
            $validator = Validator::make(request()->all(),[
             'first_name'=>'required|max:25',
             'last_name'=>'required|max:25',
@@ -262,11 +265,26 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
         //    $data = $assignLead->toArray();
         //    $data['hasBusiness'] = $assignLead->getBusiness()->toArray();
         //    dd($business);
+
+          // notifications 
+        $message = ' Lead Created Successfully, contact admin to approve and assign';
+
+          $data = [
+            'message' =>$message,
+            'user_name' =>$business->name ,  // Ensure there's a space between first name and last name
+        ];
+        $notification = new NewLeadNotification($data);
+        $users = User::all(); // Assuming you want to notify all users
+        Notification::send($users, $notification);
+
+       
            return response()->json([
                 'code'=>200,
                 'data'=>$business,
                 'mesage'=>"Lead Created Successfully, contact admin to approve and assing"
            ],200);
+
+         
         } catch (\Throwable $th) {
             return response()->json([
                 'code'=>$th->getCode(),

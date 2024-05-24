@@ -57,4 +57,8 @@ class Leads extends Model
     {
         return $this->belongsTo(User::class, 'team_id');
     }
+    public function notifications()
+    {
+        return $this->hasMany(CustomNotification::class);
+    }
 }
