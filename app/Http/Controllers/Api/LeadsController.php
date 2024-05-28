@@ -14,10 +14,69 @@ use Illuminate\Support\Facades\Notification;
 use App\Notifications\NewLeadNotification;
 class LeadsController extends Controller
 {
-    public function getPendingLeads(){
+    public function getPendingLeads(Request $request){
         $user = Auth::guard('api')->user();
-        // dd($user);
-        $leads = Leads::with('hasBusiness')->where('team_id',$user->id)->where('leads.ti_status',0)->paginate(5);
+        $userLatitude = $user->latitude;
+        $userLongitude = $user->longitude;
+
+        $teamId = $user->id;
+
+        $leads = Leads::with('hasBusiness')
+                        ->where('team_id', $teamId)
+                        ->where('leads.ti_status', 0)
+                        ->get();
+
+        $leadDistances = [];
+
+        foreach ($leads as $lead) {
+            $distance = $this->haversineGreatCircleDistance(
+                $userLatitude,
+                $userLongitude,
+                $lead->hasBusiness->latitude,
+                $lead->hasBusiness->longitude
+            );
+
+            $leadDistances[] = [
+                'lead' => $lead,
+                'distance' => $distance
+            ];
+        }
+
+        usort($leadDistances, function ($a, $b) {
+            return $a['distance'] <=> $b['distance'];
+        });
+
+        $data = [];
+
+        foreach ($leadDistances as $distanceInfo) {
+            $lead = $distanceInfo['lead'];
+            $business = $lead->hasBusiness;
+            $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
+            $data[] = [
+                'user_id' => $user->id ?? 'N/A',
+                'first_name' => $user->first_name ?? 'N/A',
+                'last_name' => $user->last_name ?? 'N/A',
+                'email' => $user->email ?? 'N/A',
+                'phone_number' => $user->phone_number ?? 'N/A',
+                'distance' => round($distanceInfo['distance'], 2),
+                'lead_id' => $lead->id ?? "N/A",
+                'visit_date' => $lead->visit_date ?? "N/A",
+                'business_id' => $business->id ?? 'N/A',
+                'Name' => $business->name ?? 'N/A',
+                'lead_first_name' => $business->owner_first_name ?? 'N/A',
+                'lead_last_name' => $business->owner_last_name ?? 'N/A',
+                'lead_email' => $business->owner_email ?? 'N/A',
+                'lead_number' => $business->owner_number ?? 'N/A',
+                'pincode' => $business->pincode ?? 'N/A',
+            ];
+        }
+
+        return response()->json([
+            'code' => 200,
+            'data' => $data,
+            'message' => 'Pending leads retrieved and sorted by distance successfully'
+        ]);
+     
         if($leads->count()){
             return response()->json([
                 'code'=>200,
@@ -30,7 +89,7 @@ class LeadsController extends Controller
                 'data'=>[
                     'leads'=>[]
                 ],
-                'message'=>'leads not found'
+                'message'=>'leads not founds'
             ]);
         }
 
@@ -38,9 +97,67 @@ class LeadsController extends Controller
 
     public function getDoneLeads(){
         $user = Auth::guard('api')->user();
-        dd($user);
-        $leads = Leads::with('hasBusiness')->where('team_id',$user->id)->where('leads.ti_status',2)->paginate(5);
-        if($leads->count()){
+        $userLatitude = $user->latitude;
+        $userLongitude = $user->longitude;
+
+        $teamId = $user->id;
+
+        $leads = Leads::with('hasBusiness')
+                        ->where('team_id', $teamId)
+                        ->where('leads.ti_status', 1)
+                        ->get();
+
+        $leadDistances = [];
+
+        foreach ($leads as $lead) {
+            $distance = $this->haversineGreatCircleDistance(
+                $userLatitude,
+                $userLongitude,
+                $lead->hasBusiness->latitude,
+                $lead->hasBusiness->longitude
+            );
+
+            $leadDistances[] = [
+                'lead' => $lead,
+                'distance' => $distance
+            ];
+        }
+
+        usort($leadDistances, function ($a, $b) {
+            return $a['distance'] <=> $b['distance'];
+        });
+
+        $data = [];
+
+        foreach ($leadDistances as $distanceInfo) {
+            $lead = $distanceInfo['lead'];
+            $business = $lead->hasBusiness;
+            $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
+            $data[] = [
+                'user_id' => $user->id ?? 'N/A',
+                'first_name' => $user->first_name ?? 'N/A',
+                'last_name' => $user->last_name ?? 'N/A',
+                'email' => $user->email ?? 'N/A',
+                'phone_number' => $user->phone_number ?? 'N/A',
+                'distance' => round($distanceInfo['distance'], 2),
+                'lead_id' => $lead->id ?? "N/A",
+                'visit_date' => $lead->visit_date ?? "N/A",
+                'business_id' => $business->id ?? 'N/A',
+                'Name' => $business->name ?? 'N/A',
+                'lead_first_name' => $business->owner_first_name ?? 'N/A',
+                'lead_last_name' => $business->owner_last_name ?? 'N/A',
+                'lead_email' => $business->owner_email ?? 'N/A',
+                'lead_number' => $business->owner_number ?? 'N/A',
+                'pincode' => $business->pincode ?? 'N/A',
+            ];
+        }
+
+        return response()->json([
+            'code' => 200,
+            'data' => $data,
+            'message' => 'Completed leads retrieved and sorted by distance successfully'
+        ]);
+         if($leads->count()){
             return response()->json([
                 'code'=>200,
                 'data'=>$leads,
@@ -61,7 +178,9 @@ class LeadsController extends Controller
     // public function todayLeads(){
     //     try {
     //     $user = Auth::guard('api')->user();
-    //     $leads = Leads::with('hasBusiness')->where('team_id',$user->id)->where('leads.ti_status',0)->whereDate('updated_at',Carbon::today())->paginate(5);
+        // $leads = Leads::with('hasBusiness')
+        // ->where('team_id',$user->id)->where('leads.ti_status',0)
+        // ->whereDate('updated_at',Carbon::today())->paginate(5);
     //     if($leads->count()){
     //         return response()->json([
     //             'code'=>200,
@@ -85,70 +204,66 @@ class LeadsController extends Controller
     //         ]);
     //     }
     // }
-    
-    public function todayLeads(Request $request)
+ 
+public function todayLeads(Request $request)
 {
     try {
         $user = User::find(Auth::guard('api')->user()->id);
-        $userLatitude = $user->latitude; // Ensure latitude field exists in your User model
-        $userLongitude = $user->longitude; // Ensure longitude field exists in your User model
+        $userLatitude = $user->latitude;
+        $userLongitude = $user->longitude;
 
-        // Fetch all businesses
-        $businesses = Business::all();
+        // Fetch leads created today
+        $leads = Leads::whereDate('created_at', today())->get();
 
-        $businessDistances = [];
+        $leadDistances = [];
 
-        // Calculate the distance for each business
-        foreach ($businesses as $business) {
+        foreach ($leads as $lead) {
             $distance = $this->haversineGreatCircleDistance(
                 $userLatitude,
                 $userLongitude,
-                $business->latitude,
-                $business->longitude
+                $lead->business->latitude,
+                $lead->business->longitude
             );
 
-            // Add business and distance to the array
-            $businessDistances[] = [
-                'business' => $business,
+            $leadDistances[] = [
+                'lead' => $lead,
                 'distance' => $distance
             ];
         }
 
-        // Sort the businesses by distance in ascending order
-        usort($businessDistances, function ($a, $b) {
+        usort($leadDistances, function ($a, $b) {
             return $a['distance'] <=> $b['distance'];
         });
+
         $data = [];
-        foreach ($businessDistances as $distanceInfo) {
-            $business = $distanceInfo['business'];
+
+        foreach ($leadDistances as $distanceInfo) {
+            $lead = $distanceInfo['lead'];
+            $business = $lead->business;
             $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
             $data[] = [
-                'full_name' => $fullName,
-                // 'first_name' => $user->first_name ?? 'N/A',
-                // 'last_name' => $user->last_name ?? 'N/A',
+                'user_id' => $user->id ?? 'N/A',
+                'first_name' => $user->first_name ?? 'N/A',
+                'last_name' => $user->last_name ?? 'N/A',
                 'email' => $user->email ?? 'N/A',
                 'phone_number' => $user->phone_number ?? 'N/A',
                 'distance' => round($distanceInfo['distance'], 2),
-                'name' => $business->name ?? 'N/A',
-                'owner_first_name' => $business->owner_first_name ?? 'N/A',
-                'owner_last_name' => $business->owner_last_name ?? 'N/A',
-                'owner_email' => $business->owner_email ?? 'N/A',
-                'owner_number' => $business->owner_number ?? 'N/A',
+                'lead_id'=>$lead->id ?? "N/A",
+                'visit_date'=>$lead->visit_date ?? "N/A",
+                'business_id' => $business->id ?? 'N/A',
+                'Name' => $business->name ?? 'N/A',
+                'lead_first_name' => $business->owner_first_name ?? 'N/A',
+                'lead_last_name' => $business->owner_last_name ?? 'N/A',
+                'lead_email' => $business->owner_email ?? 'N/A',
+                'lead_number' => $business->owner_number ?? 'N/A',
                 'pincode' => $business->pincode ?? 'N/A',
             ];
         }
-        // Prepare the response data
-        $sortedBusinesses = array_map(function ($item) {
-            return [
-                'business' => $item['business'],
-                'distance' => $item['distance']
-            ];
-        }, $businessDistances);
 
         return response()->json([
             'code' => 200,
             'data' => $data,
-            'message' => 'Businesses retrieved and sorted by distance successfully'
+            'message' => 'Leads retrieved and sorted by distance successfully'
         ]);
     } catch (\Throwable $th) {
         return response()->json([
@@ -158,6 +273,7 @@ class LeadsController extends Controller
         ]);
     }
 }
+
 
 private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371)
 {
@@ -320,6 +436,17 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
                 $leadData= $lead->toArray();
                 $leadData['selfie']=$lead->getSelfieUrl();
                 $leadData['hasBusiness']= $lead->getBusiness();
+
+             
+                // notifications
+                $message = $lead->business->name .' Lead  successfully';
+                $data = [
+                  'message' =>$message,
+                  'user_name' =>$lead->user->first_name. ' ' .$lead->user->last_name . ' Has compleated' ,  // Ensure there's a space between first name and last name
+              ];
+              $notification = new NewLeadNotification($data);
+              $users = User::all(); // Assuming you want to notify all users
+              Notification::send($users, $notification);
                 return response()->json([
                     'code'=>200,
                     'data'=>$leadData,
@@ -340,6 +467,7 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
             ],500);
         }
     }
+
     public function detailLeadView($id){
         try {
             $lead = Leads::with('hasBusiness')->find($id);

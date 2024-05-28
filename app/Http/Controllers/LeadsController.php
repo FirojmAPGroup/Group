@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Notifications\NewBusinessNotification;
 use Illuminate\Support\Facades\Notification;
+use Carbon\Carbon;
+
 
 class LeadsController extends Controller
 {
@@ -25,6 +27,7 @@ class LeadsController extends Controller
         ]);
     }
     
+
     public function todayVisit(Request $request)
     {
         try {
@@ -83,34 +86,21 @@ class LeadsController extends Controller
             return response()->json(['error' => $th->getMessage()], 500);
         }
     }
-    
-
-    // public function todayVisit(Request $request){
+    // public function todayVisit(){
     //     try {
-
-    //         $q = Business::query();
             
+	// 		$q = Business::query();
     //         $q = $q->leftJoin('leads','leads.business_id','business.id');
-	// 		if ($srch = DataTableHelper::search()) {
-	// 			$q = $q->where(function ($query) use ($srch) {
-	// 				foreach (['name', 'owner_first_name','owner_last_name', 'owner_email','owner_number','pincode','city','state','country','area'] as $k => $v) {
-	// 					if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-	// 					else $query->orWhere($v, 'like', '%' . $srch . '%');
-	// 				}
-	// 			});
-	// 		}
+
+			
     //         $q->whereDate('leads.visit_date',\Carbon\Carbon::today());
 	// 		$count = $q->count();
             
-	// 		if (DataTableHelper::sortBy() == 'ti_status') {
-	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-	// 		} else {
-	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
-	// 		}
-	// 		$q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
-
+			
 	// 		$data = [];
 	// 		foreach ($q->get() as $single) {
+    //             // $distance = $this->haversineGreatCircleDistance($userLatitude, $userLongitude, $single->latitude, $single->longitude);
+
 	// 			$data[] = [
 	// 				// 'id' => '<input type="checkbox" class="chk-multi-check" value="' . $single->getId() . '" />',
 	// 				'name' => putNA($single->name),
@@ -125,7 +115,6 @@ class LeadsController extends Controller
     //                 'area'=>putNA($single->area),
 	// 				'ti_status' => $single->leadStatus(),
 	// 				'created_at' => putNA($single->showCreated(1)),
-    //                 'distance' => round($single->distance, 2), // Distance in kilometers rounded to 2 decimal places
 	// 				'actions' => putNA(DataTableHelper::listActions([
     //                     'edit'=>routePut('leads.edit',['id'=>encrypt($single->getId())])
     //                 ]))
@@ -142,6 +131,10 @@ class LeadsController extends Controller
 	// 		return $this->resp(0, exMessage($th), [], 500);
 	// 	}
     // }
+    
+  
+    
+   
     public function loadList(){
         try {
 			$q = Business::query();
@@ -280,7 +273,7 @@ class LeadsController extends Controller
         $leads=[];
         // dd($leadsObj);
         foreach ($leadsObj as $key => $value) {
-            $leads[$value->id] = $value->name. "-" . $value->area;
+            $leads[$value->id] = $value->owner_first_name. " ".$value->owner_last_name . "  -  " . $value->area;
         }
         // .$value->owner_first_name." " .$value->owner_last_name."-" 
         $rawUsers = User::whereDoesntHave('roles')->get();

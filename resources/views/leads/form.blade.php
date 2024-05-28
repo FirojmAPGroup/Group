@@ -17,51 +17,51 @@
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="name">Business Name 
+                                    <label class="col-lg-2 col-form-label" for="name">Company Name 
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="name" name="name" placeholder="Business Name" value="{{ $business->name }}" required>
+                                        <input type="text" class="form-control" id="name" name="name" placeholder="Company Name" value="{{ $business->name }}" required>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="owner_name"> Owner First Name
+                                    <label class="col-lg-2 col-form-label" for="owner_name"> Lead First Name
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="owner_first_name" name="owner_first_name" placeholder="Owner First Name" value="{{ $business->owner_first_name }}" required>
+                                        <input type="text" class="form-control" id="owner_first_name" name="owner_first_name" placeholder="Lead First Name" value="{{ $business->owner_first_name }}" required>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="owner_name">Owner Last Name
+                                    <label class="col-lg-2 col-form-label" for="owner_name">Lead Last Name
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="owner_last_name" name="owner_last_name" placeholder="Owner Last Name" value="{{ $business->owner_last_name }}" required>
+                                        <input type="text" class="form-control" id="owner_last_name" name="owner_last_name" placeholder="Lead Last Name" value="{{ $business->owner_last_name }}" required>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="owner_name">Owner Number
+                                    <label class="col-lg-2 col-form-label" for="owner_name">Lead Number
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="owner_number" name="owner_number" placeholder="Owner Number" value="{{ $business->owner_number }}" required>
+                                        <input type="text" class="form-control" id="owner_number" name="owner_number" placeholder="Lead Number" value="{{ $business->owner_number }}" required>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="owner_name">Owner Email
+                                    <label class="col-lg-2 col-form-label" for="owner_name">Lead Email
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="email" class="form-control" id="owner_email" name="owner_email" placeholder="Owner Email" value="{{ $business->owner_email }}" required>
+                                        <input type="email" class="form-control" id="owner_email" name="owner_email" placeholder="Lead Email" value="{{ $business->owner_email }}" required>
                                     </div>
                                 </div>
                             </div>
@@ -166,6 +166,10 @@
             });
         });
     });
+    document.querySelector('form').addEventListener('submit', function() {
+    this.querySelector('button[type="submit"]').disabled = true;
+});
+
 </script>
 
 @endpush

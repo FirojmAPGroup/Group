@@ -34,7 +34,7 @@ class User extends Authenticatable implements JWTSubject
         'longitude',
         'gender',
         'profile_image',
-        'birth_date'
+        'birth_date',
     ];
 
     /**
@@ -107,5 +107,8 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(CustomNotification::class);
     }
 
-    
+    public function unreadNotifications()
+    {
+        return $this->hasMany(CustomNotification::class);
+    }
 }

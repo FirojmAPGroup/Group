@@ -27,7 +27,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers\Api', 'middl
             // Route::post('/forgot-password', 'AuthController@forgot_password')->name('api.forgot-password');
         });
     });
-
+ 
     Route::group(['prefix' => '', 'middleware' => ["apiuser"]], function () {
         // With Login
         Route::group(['prefix' => ''], function () {

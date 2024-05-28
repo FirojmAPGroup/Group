@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Hash;
 use Event;
 use App\Models\Leads;
 use App\Events\SubAdminCreated;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\NewTeamNotifications;
 
 class TeamsController extends Controller
 {
@@ -164,6 +166,17 @@ class TeamsController extends Controller
             if ($single = User::find(useId($id))) {
                 $single->ti_status= 1;
                 $single->save();
+                 // notifications
+                 $message = ' been   approved account  successfully';
+                 $data = [
+                   'message' =>$message,
+                   'user_name' =>'Super Admin has' ,  // Ensure there's a space between first name and last name
+               ];
+               $notification = new NewTeamNotifications($data);
+
+               $users =User::find(useId($id)); // Assuming you want to notify all users
+               Notification::send($users, $notification);
+
                 return $this->resp(1, getMsg('approve', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));
@@ -172,6 +185,17 @@ class TeamsController extends Controller
             if ($single = User::find(useId($id))) {
                 $single->ti_status= 0;
                 $single->save();
+                  // notifications
+                  $message = ' been   reject your  account  ';
+                  $data = [
+                    'message' =>$message,
+                    'user_name' =>'Super Admin has' ,  // Ensure there's a space between first name and last name
+                ];
+                $notification = new NewTeamNotifications($data);
+ 
+                $users =User::find(useId($id)); // Assuming you want to notify all users
+                Notification::send($users, $notification);
+
                 return $this->resp(1, getMsg('reject', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));
@@ -180,6 +204,16 @@ class TeamsController extends Controller
             if ($single = User::find(useId($id))) {
                 $single->ti_status= 2;
                 $single->save();
+                  // notifications
+                  $message = ' been blocked   account  ';
+                  $data = [
+                    'message' =>$message,
+                    'user_name' =>'Super Admin has' ,  // Ensure there's a space between first name and last name
+                ];
+                $notification = new NewTeamNotifications($data);
+ 
+                $users =User::find(useId($id)); // Assuming you want to notify all users
+                Notification::send($users, $notification);
                 return $this->resp(1, getMsg('block', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));

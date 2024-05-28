@@ -55,3 +55,11 @@
     <script src="{{ pathAssets('vendor/jquery-validation/jquery.validate.min.js') }}"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 @endpush
+
+@push('script')
+    <script>
+         document.querySelector('form').addEventListener('submit', function() {
+    this.querySelector('button[type="submit"]').disabled = true;
+});
+    </script>
+@endpush

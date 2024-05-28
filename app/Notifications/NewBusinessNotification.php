@@ -32,7 +32,7 @@ class NewBusinessNotification extends Notification
     {
         return [
             'user_name' => auth()->user()->first_name .' '. auth()->user()->last_name,
-            'message' => $this->isNewBusiness ? 'created a new business' : 'updated an existing business',
+            'message' => $this->isNewBusiness ? 'created a new business name ('.$this->business->name.')' : 'updated an existing business name ('.$this->business->name.')',
             'business_id' => $this->business->id,
             'business_name' => $this->business->name,
         ];

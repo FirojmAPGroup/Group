@@ -37,11 +37,11 @@
                     <table id="{{ $table }}" class="display" style="width:100%">
                         <thead>
                             <tr>
-                                <th data-data="name">Business Name</th>
-                                <th data-data="owner_first_name">Owner First Name</th>
-                                <th data-data="owner_last_name">Owner Last Name</th>
-                                <th data-data="owner_email">Owner Email</th>
-                                <th data-data="owner_number">Owner Number</th>
+                                <th data-data="name">Company Name</th>
+                                <th data-data="owner_first_name">Lead First Name</th>
+                                <th data-data="owner_last_name">Lead Last Name</th>
+                                <th data-data="owner_email">Lead Email</th>
+                                <th data-data="owner_number">Lead Number</th>
                                 <th data-data="pincode">Pincode</th>
                                 <th data-data="area">Area</th>
                                 <th data-data="city">City</th>
