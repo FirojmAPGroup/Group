@@ -31,61 +31,91 @@ class LeadsController extends Controller
     public function todayVisit(Request $request)
     {
         try {
-            // Fetch all users from the database
-            $users = User::all();
-            
-            // Fetch all businesses from the database
-            $businesses = Business::all();
+            // Fetch today's date
+            $today = now()->toDateString();
+            $leads = Leads::whereIn('ti_status', [0,1,2])
+            ->where('visit_date',$today)
+            ->get();
+
+            // dd($leads);
+          // Apply search criteria
+            if ($srch = DataTableHelper::search()) {
+                $q = $leads->where(function ($query) use ($srch) {
+                    foreach (['name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number', 'pincode', 'city', 'state', 'country', 'area'] as $k => $v) {
+                        if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+                        else $query->orWhere($v, 'like', '%' . $srch . '%');
+                    }
+                });
+            }
+          
+    
+          
+            // Initialize the data array
             $data = [];
     
-            foreach ($businesses as $business) {
-                $nearestUser = null;
-                $minDistance = PHP_FLOAT_MAX;
-    
-                foreach ($users as $user) {
+            // Iterate over each lead to process and collect the required information
+            foreach ($leads as $lead) {
+                if ($lead->user && $lead->business) {
+                    // Calculate the distance between user and business
                     $distance = $this->haversineGreatCircleDistance(
-                        $user->latitude,
-                        $user->longitude,
-                        $business->latitude,
-                        $business->longitude
+                        $lead->user->latitude,
+                        $lead->user->longitude,
+                        $lead->business->latitude,
+                        $lead->business->longitude
                     );
     
-                    if ($distance < $minDistance) {
-                        $minDistance = $distance;
-                        $nearestUser = $user;
+                    // Determine lead status and corresponding button class
+                    if ($lead->ti_status == 0) {
+                        $lead_status = 'Pending';
+                        $button_class = 'btn btn-warning';
+                    } elseif ($lead->ti_status == 1) {
+                        $lead_status = 'Complete';
+                        $button_class = 'btn btn-success';
+                    } else {
+                        $lead_status = 'Unknown';
+                        $button_class = 'btn btn-secondary';
                     }
-                }
     
-                if ($nearestUser) {
+                    // Collect data into the array
                     $data[] = [
-                        'full_name' => $nearestUser->first_name . ' ' . $nearestUser->last_name,
-                        'email' => $nearestUser->email,
-                        'phone_number' => $nearestUser->phone_number,
-                        'distance' => round($minDistance, 2),
-                        'name' => $business->name,
-                        'owner_first_name' => $business->owner_first_name,
-                        'owner_last_name' => $business->owner_last_name,
-                        'owner_email' => $business->owner_email,
-                        'owner_number' => $business->owner_number,
-                        'pincode' => $business->pincode,
+                        'first_name'=>$lead->user->first_name,
+                        'last_name' =>$lead->user->last_name,
+                        'email' => $lead->user->email,
+                        'phone_number' => $lead->user->phone_number,
+                        'distance' => round($distance, 2),
+                        'name' => $lead->business->name,
+                        'ti_status' => "<button class=\"$button_class\">$lead_status</button>",
+                        'lead_first_name' => $lead->business->owner_first_name,
+                        'lead_last_name' => $lead->business->owner_last_name,
+                        'lead_email' => $lead->business->owner_email,
+                        'lead_number' => $lead->business->owner_number,
+                        'pincode' => $lead->business->pincode,
+                        'city' => $lead->business->city,
+                        'state' => $lead->business->state,
+                        'country' => $lead->business->country,
                     ];
                 }
             }
     
             // Sort the data by distance in ascending order
             usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
-    		$count = $businesses->count();
+    
+            // Get the count of the data
+            $count = count($data);
             // dd($data);
+            // Return the JSON response with the collected data
             return response()->json([
                 'draw' => intval($request->input('draw')),
-                'recordsTotal' =>$count ,
+                'recordsTotal' => $count,
                 'recordsFiltered' => $count,
                 'data' => $data
             ]);
         } catch (\Throwable $th) {
+            // Return error message if any exception occurs
             return response()->json(['error' => $th->getMessage()], 500);
         }
     }
+    
     // public function todayVisit(){
     //     try {
             
@@ -132,7 +162,85 @@ class LeadsController extends Controller
 	// 	}
     // }
     
-  
+    // public function todayVisit()
+    // {
+    //     try {
+    //         // Fetch authenticated user
+    //         $user = User::find(Auth::guard('api')->user()->id);
+    //         $userLatitude = $user->latitude;
+    //         $userLongitude = $user->longitude;
+    
+    //         // Query to fetch visits for today
+    //         $q = Business::query();
+    //         $q = $q->leftJoin('leads', 'leads.business_id', 'business.id');
+    
+    //         // Apply search criteria
+    //         if ($srch = DataTableHelper::search()) {
+    //             $q = $q->where(function ($query) use ($srch) {
+    //                 foreach (['name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number', 'pincode', 'city', 'state', 'country', 'area'] as $k => $v) {
+    //                     if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+    //                     else $query->orWhere($v, 'like', '%' . $srch . '%');
+    //                 }
+    //             });
+    //         }
+    
+    //         // Filter visits for today
+    //         $q->whereDate('leads.visit_date', \Carbon\Carbon::today());
+    
+    //         // Count total records
+    //         $count = $q->count();
+    
+    //         // Apply sorting
+    //         if (DataTableHelper::sortBy() == 'ti_status') {
+    //             $q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
+    //         } else {
+    //             $q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
+    //         }
+    
+    //         // Pagination
+    //         $q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
+    
+    //         // Fetch data and calculate distance
+    //         $data = [];
+    //         foreach ($q->get() as $single) {
+    //             $distance = $this->haversineGreatCircleDistance(
+    //                 $userLatitude,
+    //                 $userLongitude,
+    //                 $single->latitude,
+    //                 $single->longitude
+    //             );
+    
+    //             $data[] = [
+    //                 'name' => putNA($single->name),
+    //                 'owner_first_name' => putNA($single->owner_first_name),
+    //                 'owner_last_name' => putNA($single->owner_last_name),
+    //                 'owner_email' => putNA($single->owner_email),
+    //                 'owner_number' => putNA($single->owner_number),
+    //                 'pincode' => putNA($single->pincode),
+    //                 'city' => putNA($single->city),
+    //                 'state' => putNA($single->state),
+    //                 'country' => putNA($single->country),
+    //                 'area' => putNA($single->area),
+    //                 'ti_status' => $single->leadStatus(),
+    //                 'created_at' => putNA($single->showCreated(1)),
+    //                 'distance' => round($distance, 2),
+    //                 // 'actions' => putNA(DataTableHelper::listActions([
+    //                 //     'edit' => routePut('leads.edit', ['id' => encrypt($single->getId())])
+    //                 // ]))
+    //             ];
+    //         }
+    
+    //         // Return response
+    //         return $this->resp(1, '', [
+    //             'draw' => request('draw'),
+    //             'recordsTotal' => $count,
+    //             'recordsFiltered' => $count,
+    //             'data' => $data
+    //         ]);
+    //     } catch (\Throwable $th) {
+    //         return $this->resp(0, exMessage($th), [], 500);
+    //     }
+    // }
     
    
     public function loadList(){

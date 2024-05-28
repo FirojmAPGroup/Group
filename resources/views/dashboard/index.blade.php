@@ -73,7 +73,7 @@
     </div>
     <div class="col-lg-3 col-sm-6">
         <div class="card">
-        <a href="{{ routePut('teams.list') }}" class="pending-element">
+            <a href="{{ routePut('teams.list')}}" class="pending-element">
             <div class="stat-widget-one card-body">
                 <div class="stat-icon d-inline-block">
                     <i class="ti-link text-danger border-danger"></i>
@@ -126,24 +126,25 @@
             <div class="card-header">
                 <h3>Today's Visit</h3>
             </div>
-           
             <div class="card-body">
                 <div class="table-responsive">
                     <table id="{{ $table }}" class="display" style="width:100%">
                         <thead>
                             <tr>
-                                <th data-data="full_name">full name</th>
-                                <th data-data="email">User email</th>
-                                <th data-data="phone_number">Phone No.</th>
-                                <th data-data="distance">distance</th>
-                               
-
-                                <th data-data="name">Business Name</th>
-                                <th data-data="owner_first_name">Owner First Name</th>
-                                <th data-data="owner_last_name">Owner Last Name</th>
-                                <th data-data="owner_email">Owner Email</th>
-                                <th data-data="owner_number">Owner Number</th>
-                              
+                                <th data-data="first_name">First Name</th>
+                                <th data-data="last_name">Last Name</th>
+                                <th data-data="email">  User Email</th>
+                                <th data-data="phone_number">User phone</th>
+                                <th data-data="distance">Distance</th>
+                                <th data-data="name">Company Name</th>
+                                <th data-data="lead_first_name">Lead First Name</th>
+                                <th data-data="lead_last_name">Lead Last Name</th>
+                                <th data-data="lead_email">Lead Email</th>
+                                <th data-data="lead_number">Lead Number</th>
+                                <th data-data="pincode">Pincode</th>
+                                <th data-data="city">City</th>
+                                <th data-data="state">State</th>
+                                <th data-data="ti_status">Status</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -206,7 +207,15 @@
     new Chartist.Bar('.ct-bar-chart', barChart, options, responsiveOptions);
 
     jQuery(document).ready(function() {
-      dtTable = applyDataTable('#{{$table}}', '{!! $urlListData ?? "" !!}', {});
+      dtTable = applyDataTable('#{{$table}}', '{!! $urlListData ?? "" !!}', {
+        "paging": false, // Enable pagination
+        "lengthChange": true, // Enable length change
+        "searching": false, // Enable search
+        "ordering": false, // Enable ordering
+        "info": true, // Enable info
+        "autoWidth": true, // Disable auto width calculation
+        "responsive": true // Enable responsiveness
+      });
     });
     </script>
 @endpush

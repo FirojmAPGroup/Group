@@ -28,7 +28,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
        });
        Route::group(['middleware'=>['user']],function (){
             Route::get('', 'DashboardController@dashboard')->name('app.dashboard');
-            Route::post('/today-visits','LeadsController@todayVisit')->name('app.todayVisits');
+            Route::match(['get','post'],'/today-visits','LeadsController@todayVisit')->name('app.todayVisits');
             Route::get('/calculateDistance','LeadsController@calculateDistance')->name('app.calculateDistance');
 
                   // Profile-User

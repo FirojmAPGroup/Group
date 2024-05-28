@@ -18,8 +18,7 @@
 
             <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
                 <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">        <span class="success"><i class="ti-image"></i></span>
-
+                    <h5 class="mb-1">       
                         {{ $notification->data['user_name'] ?? 'Unknown User' }}</h5>
                     <small>{{ $notification->created_at->diffForHumans() }}</small>
                 </div>

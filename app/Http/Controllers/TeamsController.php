@@ -338,7 +338,7 @@ class TeamsController extends Controller
             $query->select('id', 'owner_first_name','owner_last_name', 'name', 'owner_email');},
              'user' => function ($query) {
             $query->select('id', 'first_name', 'last_name', 'email');}
-        ])->orderBy('created_at', 'desc');;
+        ])->orderBy('created_at', 'desc');
 
 
         if ($filter == 'completed') {
@@ -406,6 +406,7 @@ class TeamsController extends Controller
                 'assigned_to' => $lead->user ? $lead->user->first_name . ' ' . $lead->user->last_name : 'Not Assigned',
                 'assigned_email' => $lead->user->email ?? '',
                 'Status' => $status,
+                'visit_date'=>$lead->visit_date,
                 'created_at' => $lead->created_at->format('Y-m-d'),
                 'assigned_on' => $lead->created_at->format('Y-m-d'),
             ];

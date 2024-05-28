@@ -114,7 +114,8 @@
                                 <th style="width: 14.28%">Business Name</th>
                                 <th style="width: 20.28%">Owner Name</th>
                                 <th style="width: 10.28%;padding-left: 15px ;">Status</th>
-                                <th style="width: 14.28%">Assigned To</th>
+                                <th style="width: 8.28%">Visit Date</th>
+                                <th style="width: 8.28%">Assigned To</th>
                                 <th style="width: 14.28%">Assigned Email</th>
                                 <th style="width: 10.28%">Created At</th>
                                 <th style="width: 10.28%">Assigned On</th>
@@ -127,6 +128,7 @@
                                 <td>{{ $lead['business_name'] }}</td>
                                 <td>{{ $lead['owner_name'] }}</td>
                                 <td style="padding-left: 15px ">{{ $lead['Status'] }}</td>
+                                <td>{{ $lead['visit_date'] }}</td>
                                 <td>{{ $lead['assigned_to'] }}</td>
                                 <td>{{ $lead['assigned_email'] }}</td>
                                 <td>{{ $lead['created_at'] }}</td>
@@ -162,6 +164,7 @@
                 { data: 'business_name', name: 'business_name' },
                 { data: 'owner_name', name: 'owner_name' },
                 { data: 'Status', name: 'Status' },
+                {data:'visit_date' name:'visit_date'},
                 { data: 'assigned_to', name: 'assigned_to' },
                 { data: 'assigned_email', name: 'assigned_email' },
                 { data: 'created_at', name: 'created_at' },
