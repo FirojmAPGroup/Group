@@ -332,10 +332,10 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
         //    dd(request()->all());
        
            $validator = Validator::make(request()->all(),[
-            'first_name'=>'required|max:25',
-            'last_name'=>'required|max:25',
-            'mobile'=>'required|digits:10',
-            'email'=>'required|email',
+            'owner_first_name'=>'required|max:25',
+            'owner_last_name'=>'required|max:25',
+            'owner_number'=>'required|digits:10',
+            'owner_email'=>'required|email',
             'company_name'=>'required|max:50',
             'country'=>'required|max:25',
             'state'=>'required|max:25',
@@ -354,10 +354,10 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
            }
            $leadData = [
             'name'=>request()->get('company_name'),
-            'owner_first_name'=>request()->get('first_name'),
-            'owner_last_name'=>request()->get('last_name'),
-            'owner_number'=>request()->get('mobile'),
-            'owner_email'=>request()->get('email'),
+            'owner_first_name'=>request()->get('owner_first_name'),
+            'owner_last_name'=>request()->get('owner_last_name'),
+            'owner_number'=>request()->get('owner_number'),
+            'owner_email'=>request()->get('owner_email'),
             'ti_status'=>0,
             'pincode'=>request()->get('pincode'),
             'city'=>request()->get('city'),
@@ -410,13 +410,83 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
         }
     }
 
-    public function updateLead($id){
+    // public function updateLead($id){
+    //     try {
+    //         $validator = Validator::make(request()->all(),[
+    //             'remarks'=>'|max:100',
+    //             'selfie'=>'required|mimes:png,jpg',
+    //             'latitude'=>'required',
+    //             'longitude'=>'required'
+    //         ]);
+    //         if($validator->fails()){
+    //             return response()->json([
+    //                 'code'=>401,
+    //                 'data'=>[],
+    //                 'message'=>$validator->errors()->first()
+    //             ],401);
+    //         }
+    //         $lead = Leads::find($id);
+    //         if($lead){
+    //             $lead->remark = request()->get('remarks');
+    //             $lead->putFile('selfie',request()->file('selfie'),'');
+    //             $lead->latitude = request()->get('latitude');
+    //             $lead->longitude = request()->get('longitude');
+    //             $lead->ti_status = request()->get('status');
+    //             $lead->save();
+    //             $leadData= $lead->toArray();
+    //             $leadData['selfie']=$lead->getSelfieUrl();
+    //             $leadData['hasBusiness']= $lead->getBusiness();
+
+             
+    //             // notifications
+    //             $message = $lead->business->name .' Lead  successfully';
+    //             $data = [
+    //               'message' =>$message,
+    //               'user_name' =>$lead->user->first_name. ' ' .$lead->user->last_name . ' Has compleated' ,  // Ensure there's a space between first name and last name
+    //           ];
+    //           $notification = new NewLeadNotification($data);
+    //           $users = User::all(); // Assuming you want to notify all users
+    //           Notification::send($users, $notification);
+    //         //   dd($leadData);
+    //             return response()->json([
+    //                 'code'=>200,
+    //                 'data'=>$leadData,
+    //                 'message'=>"Lead updated successfuly"
+    //             ],200);
+    //         } else {
+    //             return response()->json([
+    //                 'code'=>404,
+    //                 'data'=>[],
+    //                 'message'=>"Lead Not found"
+    //             ],404);
+    //         }
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'code'=>$th->getCode(),
+    //             'data'=>[],
+    //             'message'=>$th->getMessage()
+    //         ],500);
+    //     }
+    // }
+
+     public function updateLead($id){
         try {
             $validator = Validator::make(request()->all(),[
-                'remarks'=>'required|max:100',
+                'remarks'=>'|max:100',
                 'selfie'=>'required|mimes:png,jpg',
                 'latitude'=>'required',
-                'longitude'=>'required'
+                'longitude'=>'required',
+                // lead 
+                'name'=>'required',
+                'owner_first_name'=>'required',
+                'owner_last_name'=>'required',
+                'owner_number'=>'required|digits:10',
+                'owner_email'=>'required|email',
+                'country'=>'required',
+                'state'=>'required',
+                'city'=>'required',
+                'area'=>'required',
+                'pincode'=>'required|digits:6',
             ]);
             if($validator->fails()){
                 return response()->json([
@@ -426,16 +496,30 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
                 ],401);
             }
             $lead = Leads::find($id);
+            $business = Business::find($id);
             if($lead){
+                $business->name = request()->get('name');
+                $business->owner_first_name = request()->get('owner_first_name');
+                $business->owner_last_name = request()->get('owner_last_name');
+                $business->owner_email = request()->get('owner_email');
+                $business->owner_number = request()->get('owner_number');
+                $business->country = request()->get('country');
+                $business->state = request()->get('state');
+                $business->city = request()->get('city');
+                $business->area = request()->get('area');
+                $business->pincode = request()->get('pincode');
+
                 $lead->remark = request()->get('remarks');
                 $lead->putFile('selfie',request()->file('selfie'),'');
                 $lead->latitude = request()->get('latitude');
                 $lead->longitude = request()->get('longitude');
+
                 $lead->ti_status = request()->get('status');
                 $lead->save();
+                $business->save();
                 $leadData= $lead->toArray();
                 $leadData['selfie']=$lead->getSelfieUrl();
-                $leadData['hasBusiness']= $lead->getBusiness();
+                // $leadData['hasBusiness']= $lead->getBusiness();
 
              
                 // notifications
@@ -449,7 +533,7 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
               Notification::send($users, $notification);
                 return response()->json([
                     'code'=>200,
-                    'data'=>$leadData,
+                    'data'=>$leadData,$business,
                     'message'=>"Lead updated successfuly"
                 ],200);
             } else {
