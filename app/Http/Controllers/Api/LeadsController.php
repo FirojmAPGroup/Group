@@ -94,7 +94,7 @@ class LeadsController extends Controller
     //     }
 
     // }
-  
+    
     public function getPendingLeads(Request $request){
         $user = Auth::guard('api')->user();
         $userLatitude = $user->latitude;
@@ -111,25 +111,70 @@ class LeadsController extends Controller
     
         // Get count of all pending leads for the user's team
         $totalPendingLeadsCount = Leads::where('team_id', $teamId)
-                                        ->where('leads.ti_status', [0,2])
+                                        ->whereIn('leads.ti_status', [0,2])
                                         ->count();
     
-        // Filter leads based on the date filter
+        // Get count of today's pending leads
+        $todayPendingLeadsCount = Leads::where('team_id', $teamId)
+                                        ->whereIn('leads.ti_status', [0,2])
+                                        ->whereDate('visit_date', $today)
+                                        ->count();
+    
+        // Get count of yesterday's pending leads
+        $yesterdayPendingLeadsCount = Leads::where('team_id', $teamId)
+                                            ->whereIn('leads.ti_status', [0,2])
+                                            ->whereDate('visit_date', $yesterday)
+                                            ->count();
+    
+        // Get count of last week's pending leads
+        $lastWeekPendingLeadsCount = Leads::where('team_id', $teamId)
+                                           ->whereIn('leads.ti_status', [0,2])
+                                           ->whereBetween('visit_date', [$lastWeekStart, $lastWeekEnd])
+                                           ->count();
+    
+        
+        // new 
+        // Get count of all done leads for the user's team
+        $totalDoneLeadsCount = Leads::where('team_id', $teamId)
+        ->where('leads.ti_status', 1)
+        ->count();
+
+        // Get count of all pending leads for the user's team
+     
+
+        // Get count of today's done leads
+        $todayDoneLeadsCount = Leads::where('team_id', $teamId)
+            ->where('leads.ti_status', 1)
+            ->whereDate('visit_date', $today)
+            ->count();
+
+        // Get count of yesterday's done leads
+        $yesterdayDoneLeadsCount = Leads::where('team_id', $teamId)
+                ->where('leads.ti_status', 1)
+                ->whereDate('visit_date', $yesterday)
+                ->count();
+
+        // Get count of last week's done leads
+        $lastWeekDoneLeadsCount = Leads::where('team_id', $teamId)
+                ->where('leads.ti_status', 1)
+                ->whereBetween('visit_date', [$lastWeekStart, $lastWeekEnd])
+                ->count();
+                                                // Filter leads based on the date filter
         $leads = Leads::with('hasBusiness')
                         ->where('team_id', $teamId)
-                        ->where('leads.ti_status', [0,2])
+                        ->whereIn('leads.ti_status', [0,2])
                         ->when($dateFilter === 'today', function ($query) use ($today) {
-                            return $query->whereDate('created_at', $today);
+                            return $query->whereDate('visit_date', $today);
                         })
                         ->when($dateFilter === 'yesterday', function ($query) use ($yesterday) {
-                            return $query->whereDate('created_at', $yesterday);
+                            return $query->whereDate('visit_date', $yesterday);
                         })
                         ->when($dateFilter === 'both', function ($query) use ($today, $yesterday) {
-                            return $query->whereDate('created_at', $today)
-                                         ->orWhereDate('created_at', $yesterday);
+                            return $query->whereDate('visit_date', $today)
+                                         ->orWhereDate('visit_date', $yesterday);
                         })
                         ->when($dateFilter === 'last_week', function ($query) use ($lastWeekStart, $lastWeekEnd) {
-                            return $query->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd]);
+                            return $query->whereBetween('visit_date', [$lastWeekStart, $lastWeekEnd]);
                         })
                         ->get();
     
@@ -190,27 +235,136 @@ class LeadsController extends Controller
             'code' => 200,
             'data' => $data,
             'date_filter' => $dateFilter,
+            'total_done_leads_count' => $totalDoneLeadsCount, // Total count of all done leads
             'total_pending_leads_count' => $totalPendingLeadsCount, // Total count of all pending leads
+            'today_done_leads_count' => $todayDoneLeadsCount, // Count of today's done leads
+            'yesterday_done_leads_count' => $yesterdayDoneLeadsCount, // Count of yesterday's done leads
+            'last_week_done_leads_count' => $lastWeekDoneLeadsCount, // Count of last week's done leads
+            'today_pending_leads_count' => $todayPendingLeadsCount, // Count of today's pending leads
+            'yesterday_pending_leads_count' => $yesterdayPendingLeadsCount, // Count of yesterday's pending leads
+            'last_week_pending_leads_count' => $lastWeekPendingLeadsCount, // Count of last week's pending leads
             'message' => 'Pending leads retrieved and sorted by distance successfully'
         ]);
-    
-        if($leads->count()){
-            return response()->json([
-                'code'=>200,
-                'data'=>$leads,
-                'message'=>'leads retrive successfully'
-            ]);
-        } else {
-            return response()->json([
-                'code'=>200,
-                'data'=>[
-                    'leads'=>[]
-                ],
-                'message'=>'leads not founds'
-            ]);
-        }
-
     }
+    
+    // public function getPendingLeads(Request $request){
+    //     $user = Auth::guard('api')->user();
+    //     $userLatitude = $user->latitude;
+    //     $userLongitude = $user->longitude;
+    
+    //     $teamId = $user->id;
+    
+    //     $today = Carbon::today();
+    //     $yesterday = Carbon::yesterday();
+    //     $lastWeekStart = Carbon::now()->subWeek()->startOfWeek();
+    //     $lastWeekEnd = Carbon::now()->subWeek()->endOfWeek();
+    
+    //     $dateFilter = $request->input('date_filter', 'all'); // 'today', 'yesterday', 'both', 'last_week', or 'all'
+    
+    //     // Get count of all pending leads for the user's team
+    //     $totalPendingLeadsCount = Leads::where('team_id', $teamId)
+    //                                     ->where('leads.ti_status', [0,2])
+    //                                     ->count();
+    
+    //     // Filter leads based on the date filter
+    //     $leads = Leads::with('hasBusiness')
+    //                     ->where('team_id', $teamId)
+    //                     ->where('leads.ti_status', [0,2])
+    //                     ->when($dateFilter === 'today', function ($query) use ($today) {
+    //                         return $query->whereDate('visit_date', $today);
+    //                     })
+    //                     ->when($dateFilter === 'yesterday', function ($query) use ($yesterday) {
+    //                         return $query->whereDate('visit_date', $yesterday);
+    //                     })
+    //                     ->when($dateFilter === 'both', function ($query) use ($today, $yesterday) {
+    //                         return $query->whereDate('visit_date', $today)
+    //                                      ->orWhereDate('visit_date', $yesterday);
+    //                     })
+    //                     ->when($dateFilter === 'last_week', function ($query) use ($lastWeekStart, $lastWeekEnd) {
+    //                         return $query->whereBetween('visit_date', [$lastWeekStart, $lastWeekEnd]);
+    //                     })
+    //                     ->get();
+    
+    //     $leadDistances = [];
+    
+    //     foreach ($leads as $lead) {
+    //         $distance = $this->haversineGreatCircleDistance(
+    //             $userLatitude,
+    //             $userLongitude,
+    //             $lead->hasBusiness->latitude,
+    //             $lead->hasBusiness->longitude
+    //         );
+    
+    //         $leadDistances[] = [
+    //             'lead' => $lead,
+    //             'distance' => $distance
+    //         ];
+    //     }
+    
+    //     usort($leadDistances, function ($a, $b) {
+    //         return $a['distance'] <=> $b['distance'];
+    //     });
+    
+    //     $data = [];
+    
+    //     foreach ($leadDistances as $distanceInfo) {
+    //         $lead = $distanceInfo['lead'];
+    //         $business = $lead->hasBusiness;
+    //         $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
+    
+    //         // Determine if the lead is from today, yesterday, or last week
+    //         $createdAt = Carbon::parse($lead->created_at);
+    //         $leadDate = $createdAt->isToday() ? 'today' :
+    //                     ($createdAt->isYesterday() ? 'yesterday' :
+    //                     ($createdAt->between($lastWeekStart, $lastWeekEnd) ? 'last_week' : 'other'));
+    //     //    date 
+    //      // $leadDate = $createdAt->format('Y-m-d'); // Show the actual created_at date
+
+    //         $data[] = [
+    //             'user_id' => $user->id ?? 'N/A',
+    //             'first_name' => $user->first_name ?? 'N/A',
+    //             'last_name' => $user->last_name ?? 'N/A',
+    //             'email' => $user->email ?? 'N/A',
+    //             'phone_number' => $user->phone_number ?? 'N/A',
+    //             'distance' => round($distanceInfo['distance'], 2),
+    //             'lead_id' => $lead->id ?? "N/A",
+    //             'visit_date' => $lead->visit_date ?? "N/A",
+    //             'business_id' => $business->id ?? 'N/A',
+    //             'Name' => $business->name ?? 'N/A',
+    //             'lead_first_name' => $business->owner_first_name ?? 'N/A',
+    //             'lead_last_name' => $business->owner_last_name ?? 'N/A',
+    //             'lead_email' => $business->owner_email ?? 'N/A',
+    //             'lead_number' => $business->owner_number ?? 'N/A',
+    //             'pincode' => $business->pincode ?? 'N/A',
+    //             'lead_date' => $leadDate // New field indicating 'today', 'yesterday', 'last_week', or 'other'
+    //         ];
+    //     }
+    
+    //     return response()->json([
+    //         'code' => 200,
+    //         'data' => $data,
+    //         'date_filter' => $dateFilter,
+    //         'total_pending_leads_count' => $totalPendingLeadsCount, // Total count of all pending leads
+    //         'message' => 'Pending leads retrieved and sorted by distance successfully'
+    //     ]);
+    
+    //     if($leads->count()){
+    //         return response()->json([
+    //             'code'=>200,
+    //             'data'=>$leads,
+    //             'message'=>'leads retrive successfully'
+    //         ]);
+    //     } else {
+    //         return response()->json([
+    //             'code'=>200,
+    //             'data'=>[
+    //                 'leads'=>[]
+    //             ],
+    //             'message'=>'leads not founds'
+    //         ]);
+    //     }
+
+    // }
     // public function getDoneLeads(){
     //     $user = Auth::guard('api')->user();
     //     $userLatitude = $user->latitude;
@@ -311,22 +465,65 @@ class LeadsController extends Controller
                                      ->where('leads.ti_status', 1)
                                      ->count();
     
+        // Get count of all pending leads for the user's team
+        $totalPendingLeadsCount = Leads::where('team_id', $teamId)
+                                        ->whereIn('leads.ti_status', [0,2])
+                                        ->count();
+    
+        // Get count of today's done leads
+        $todayDoneLeadsCount = Leads::where('team_id', $teamId)
+                                     ->where('leads.ti_status', 1)
+                                     ->whereDate('visit_date', $today)
+                                     ->count();
+    
+        // Get count of yesterday's done leads
+        $yesterdayDoneLeadsCount = Leads::where('team_id', $teamId)
+                                         ->where('leads.ti_status', 1)
+                                         ->whereDate('visit_date', $yesterday)
+                                         ->count();
+    
+        // Get count of last week's done leads
+        $lastWeekDoneLeadsCount = Leads::where('team_id', $teamId)
+                                        ->where('leads.ti_status', 1)
+                                        ->whereBetween('visit_date', [$lastWeekStart, $lastWeekEnd])
+                                        ->count();
+    
+       
+
+        // Get count of today's pending leads
+        $todayPendingLeadsCount = Leads::where('team_id', $teamId)
+        ->whereIn('leads.ti_status', [0,2])
+        ->whereDate('visit_date', $today)
+        ->count();
+
+        // Get count of yesterday's pending leads
+        $yesterdayPendingLeadsCount = Leads::where('team_id', $teamId)
+            ->whereIn('leads.ti_status', [0,2])
+            ->whereDate('visit_date', $yesterday)
+            ->count();
+
+        // Get count of last week's pending leads
+        $lastWeekPendingLeadsCount = Leads::where('team_id', $teamId)
+            ->whereIn('leads.ti_status', [0,2])
+            ->whereBetween('visit_date', [$lastWeekStart, $lastWeekEnd])
+            ->count();
+
         // Filter leads based on the date filter
         $leads = Leads::with('hasBusiness')
                         ->where('team_id', $teamId)
                         ->where('leads.ti_status', 1)
                         ->when($dateFilter === 'today', function ($query) use ($today) {
-                            return $query->whereDate('created_at', $today);
+                            return $query->whereDate('visit_date', $today);
                         })
                         ->when($dateFilter === 'yesterday', function ($query) use ($yesterday) {
-                            return $query->whereDate('created_at', $yesterday);
+                            return $query->whereDate('visit_date', $yesterday);
                         })
                         ->when($dateFilter === 'both', function ($query) use ($today, $yesterday) {
-                            return $query->whereDate('created_at', $today)
-                                         ->orWhereDate('created_at', $yesterday);
+                            return $query->whereDate('visit_date', $today)
+                                         ->orWhereDate('visit_date', $yesterday);
                         })
                         ->when($dateFilter === 'last_week', function ($query) use ($lastWeekStart, $lastWeekEnd) {
-                            return $query->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd]);
+                            return $query->whereBetween('visit_date', [$lastWeekStart, $lastWeekEnd]);
                         })
                         ->get();
     
@@ -388,24 +585,17 @@ class LeadsController extends Controller
             'data' => $data,
             'date_filter' => $dateFilter,
             'total_done_leads_count' => $totalDoneLeadsCount, // Total count of all done leads
+            'total_pending_leads_count' => $totalPendingLeadsCount, // Total count of all pending leads
+            'today_done_leads_count' => $todayDoneLeadsCount, // Count of today's done leads
+            'yesterday_done_leads_count' => $yesterdayDoneLeadsCount, // Count of yesterday's done leads
+            'last_week_done_leads_count' => $lastWeekDoneLeadsCount, // Count of last week's done leads
+            'today_pending_leads_count' => $todayPendingLeadsCount, // Count of today's pending leads
+            'yesterday_pending_leads_count' => $yesterdayPendingLeadsCount, // Count of yesterday's pending leads
+            'last_week_pending_leads_count' => $lastWeekPendingLeadsCount, // Count of last week's pending leads
             'message' => 'Completed leads retrieved and sorted by distance successfully'
         ]);
-        if($leads->count()){
-                    return response()->json([
-                        'code'=>200,
-                        'data'=>$leads,
-                        'message'=>'leads retrive successfully'
-                    ]);
-                } else {
-                    return response()->json([
-                        'code'=>200,
-                        'data'=>[
-                            'leads'=>[]
-                        ],
-                        'message'=>'leads not found'
-                    ]);
-                }
     }
+    
     
     // public function todayLeads(){
     //     try {
@@ -445,7 +635,7 @@ public function todayLeads(Request $request)
         $userLongitude = $user->longitude;
 
         // Fetch leads created today
-        $leads = Leads::whereDate('created_at', today())->get();
+        $leads = Leads::whereDate('visit_date', today())->get();
 
         $leadDistances = [];
 
