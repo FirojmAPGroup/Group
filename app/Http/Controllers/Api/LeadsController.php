@@ -14,20 +14,127 @@ use Illuminate\Support\Facades\Notification;
 use App\Notifications\NewLeadNotification;
 class LeadsController extends Controller
 {
+    // public function getPendingLeads(Request $request){
+    //     $user = Auth::guard('api')->user();
+    //     $userLatitude = $user->latitude;
+    //     $userLongitude = $user->longitude;
+
+    //     $teamId = $user->id;
+
+    //     $leads = Leads::with('hasBusiness')
+    //                     ->where('team_id', $teamId)
+    //                     ->where('leads.ti_status', 0)
+    //                     ->get();
+
+    //     $leadDistances = [];
+
+    //     foreach ($leads as $lead) {
+    //         $distance = $this->haversineGreatCircleDistance(
+    //             $userLatitude,
+    //             $userLongitude,
+    //             $lead->hasBusiness->latitude,
+    //             $lead->hasBusiness->longitude
+    //         );
+
+    //         $leadDistances[] = [
+    //             'lead' => $lead,
+    //             'distance' => $distance
+    //         ];
+    //     }
+
+    //     usort($leadDistances, function ($a, $b) {
+    //         return $a['distance'] <=> $b['distance'];
+    //     });
+
+    //     $data = [];
+
+    //     foreach ($leadDistances as $distanceInfo) {
+    //         $lead = $distanceInfo['lead'];
+    //         $business = $lead->hasBusiness;
+    //         $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
+    //         $data[] = [
+    //             'user_id' => $user->id ?? 'N/A',
+    //             'first_name' => $user->first_name ?? 'N/A',
+    //             'last_name' => $user->last_name ?? 'N/A',
+    //             'email' => $user->email ?? 'N/A',
+    //             'phone_number' => $user->phone_number ?? 'N/A',
+    //             'distance' => round($distanceInfo['distance'], 2),
+    //             'lead_id' => $lead->id ?? "N/A",
+    //             'visit_date' => $lead->visit_date ?? "N/A",
+    //             'business_id' => $business->id ?? 'N/A',
+    //             'Name' => $business->name ?? 'N/A',
+    //             'lead_first_name' => $business->owner_first_name ?? 'N/A',
+    //             'lead_last_name' => $business->owner_last_name ?? 'N/A',
+    //             'lead_email' => $business->owner_email ?? 'N/A',
+    //             'lead_number' => $business->owner_number ?? 'N/A',
+    //             'pincode' => $business->pincode ?? 'N/A',
+    //         ];
+    //     }
+
+    //     return response()->json([
+    //         'code' => 200,
+    //         'data' => $data,
+    //         'message' => 'Pending leads retrieved and sorted by distance successfully'
+    //     ]);
+     
+    //     if($leads->count()){
+    //         return response()->json([
+    //             'code'=>200,
+    //             'data'=>$leads,
+    //             'message'=>'leads retrive successfully'
+    //         ]);
+    //     } else {
+    //         return response()->json([
+    //             'code'=>200,
+    //             'data'=>[
+    //                 'leads'=>[]
+    //             ],
+    //             'message'=>'leads not founds'
+    //         ]);
+    //     }
+
+    // }
+  
     public function getPendingLeads(Request $request){
         $user = Auth::guard('api')->user();
         $userLatitude = $user->latitude;
         $userLongitude = $user->longitude;
-
+    
         $teamId = $user->id;
-
+    
+        $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+        $lastWeekStart = Carbon::now()->subWeek()->startOfWeek();
+        $lastWeekEnd = Carbon::now()->subWeek()->endOfWeek();
+    
+        $dateFilter = $request->input('date_filter', 'all'); // 'today', 'yesterday', 'both', 'last_week', or 'all'
+    
+        // Get count of all pending leads for the user's team
+        $totalPendingLeadsCount = Leads::where('team_id', $teamId)
+                                        ->where('leads.ti_status', [0,2])
+                                        ->count();
+    
+        // Filter leads based on the date filter
         $leads = Leads::with('hasBusiness')
                         ->where('team_id', $teamId)
-                        ->where('leads.ti_status', 0)
+                        ->where('leads.ti_status', [0,2])
+                        ->when($dateFilter === 'today', function ($query) use ($today) {
+                            return $query->whereDate('created_at', $today);
+                        })
+                        ->when($dateFilter === 'yesterday', function ($query) use ($yesterday) {
+                            return $query->whereDate('created_at', $yesterday);
+                        })
+                        ->when($dateFilter === 'both', function ($query) use ($today, $yesterday) {
+                            return $query->whereDate('created_at', $today)
+                                         ->orWhereDate('created_at', $yesterday);
+                        })
+                        ->when($dateFilter === 'last_week', function ($query) use ($lastWeekStart, $lastWeekEnd) {
+                            return $query->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd]);
+                        })
                         ->get();
-
+    
         $leadDistances = [];
-
+    
         foreach ($leads as $lead) {
             $distance = $this->haversineGreatCircleDistance(
                 $userLatitude,
@@ -35,23 +142,30 @@ class LeadsController extends Controller
                 $lead->hasBusiness->latitude,
                 $lead->hasBusiness->longitude
             );
-
+    
             $leadDistances[] = [
                 'lead' => $lead,
                 'distance' => $distance
             ];
         }
-
+    
         usort($leadDistances, function ($a, $b) {
             return $a['distance'] <=> $b['distance'];
         });
-
+    
         $data = [];
-
+    
         foreach ($leadDistances as $distanceInfo) {
             $lead = $distanceInfo['lead'];
             $business = $lead->hasBusiness;
             $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
+    
+            // Determine if the lead is from today, yesterday, or last week
+            $createdAt = Carbon::parse($lead->created_at);
+            $leadDate = $createdAt->isToday() ? 'today' :
+                        ($createdAt->isYesterday() ? 'yesterday' :
+                        ($createdAt->between($lastWeekStart, $lastWeekEnd) ? 'last_week' : 'other'));
+    
             $data[] = [
                 'user_id' => $user->id ?? 'N/A',
                 'first_name' => $user->first_name ?? 'N/A',
@@ -68,15 +182,18 @@ class LeadsController extends Controller
                 'lead_email' => $business->owner_email ?? 'N/A',
                 'lead_number' => $business->owner_number ?? 'N/A',
                 'pincode' => $business->pincode ?? 'N/A',
+                'lead_date' => $leadDate // New field indicating 'today', 'yesterday', 'last_week', or 'other'
             ];
         }
-
+    
         return response()->json([
             'code' => 200,
             'data' => $data,
+            'date_filter' => $dateFilter,
+            'total_pending_leads_count' => $totalPendingLeadsCount, // Total count of all pending leads
             'message' => 'Pending leads retrieved and sorted by distance successfully'
         ]);
-     
+    
         if($leads->count()){
             return response()->json([
                 'code'=>200,
@@ -94,21 +211,127 @@ class LeadsController extends Controller
         }
 
     }
+    // public function getDoneLeads(){
+    //     $user = Auth::guard('api')->user();
+    //     $userLatitude = $user->latitude;
+    //     $userLongitude = $user->longitude;
 
-    public function getDoneLeads(){
+    //     $teamId = $user->id;
+
+    //     $leads = Leads::with('hasBusiness')
+    //                     ->where('team_id', $teamId)
+    //                     ->where('leads.ti_status', 1)
+    //                     ->get();
+
+    //     $leadDistances = [];
+
+    //     foreach ($leads as $lead) {
+    //         $distance = $this->haversineGreatCircleDistance(
+    //             $userLatitude,
+    //             $userLongitude,
+    //             $lead->hasBusiness->latitude,
+    //             $lead->hasBusiness->longitude
+    //         );
+
+    //         $leadDistances[] = [
+    //             'lead' => $lead,
+    //             'distance' => $distance
+    //         ];
+    //     }
+
+    //     usort($leadDistances, function ($a, $b) {
+    //         return $a['distance'] <=> $b['distance'];
+    //     });
+
+    //     $data = [];
+
+    //     foreach ($leadDistances as $distanceInfo) {
+    //         $lead = $distanceInfo['lead'];
+    //         $business = $lead->hasBusiness;
+    //         $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
+    //         $data[] = [
+    //             'user_id' => $user->id ?? 'N/A',
+    //             'first_name' => $user->first_name ?? 'N/A',
+    //             'last_name' => $user->last_name ?? 'N/A',
+    //             'email' => $user->email ?? 'N/A',
+    //             'phone_number' => $user->phone_number ?? 'N/A',
+    //             'distance' => round($distanceInfo['distance'], 2),
+    //             'lead_id' => $lead->id ?? "N/A",
+    //             'visit_date' => $lead->visit_date ?? "N/A",
+    //             'business_id' => $business->id ?? 'N/A',
+    //             'Name' => $business->name ?? 'N/A',
+    //             'lead_first_name' => $business->owner_first_name ?? 'N/A',
+    //             'lead_last_name' => $business->owner_last_name ?? 'N/A',
+    //             'lead_email' => $business->owner_email ?? 'N/A',
+    //             'lead_number' => $business->owner_number ?? 'N/A',
+    //             'pincode' => $business->pincode ?? 'N/A',
+    //         ];
+    //     }
+
+    //     return response()->json([
+    //         'code' => 200,
+    //         'data' => $data,
+    //         'message' => 'Completed leads retrieved and sorted by distance successfully'
+    //     ]);
+    //      if($leads->count()){
+    //         return response()->json([
+    //             'code'=>200,
+    //             'data'=>$leads,
+    //             'message'=>'leads retrive successfully'
+    //         ]);
+    //     } else {
+    //         return response()->json([
+    //             'code'=>200,
+    //             'data'=>[
+    //                 'leads'=>[]
+    //             ],
+    //             'message'=>'leads not found'
+    //         ]);
+    //     }
+
+    // }
+  
+    
+    public function getDoneLeads(Request $request){
         $user = Auth::guard('api')->user();
         $userLatitude = $user->latitude;
         $userLongitude = $user->longitude;
-
+    
         $teamId = $user->id;
-
+    
+        $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+        $lastWeekStart = Carbon::now()->subWeek()->startOfWeek();
+        $lastWeekEnd = Carbon::now()->subWeek()->endOfWeek();
+    
+        $dateFilter = $request->input('date_filter', 'all'); // 'today', 'yesterday', 'both', 'last_week', or 'all'
+    
+        // Get count of all done leads for the user's team
+        $totalDoneLeadsCount = Leads::where('team_id', $teamId)
+                                     ->where('leads.ti_status', 1)
+                                     ->count();
+    
+        // Filter leads based on the date filter
         $leads = Leads::with('hasBusiness')
                         ->where('team_id', $teamId)
                         ->where('leads.ti_status', 1)
+                        ->when($dateFilter === 'today', function ($query) use ($today) {
+                            return $query->whereDate('created_at', $today);
+                        })
+                        ->when($dateFilter === 'yesterday', function ($query) use ($yesterday) {
+                            return $query->whereDate('created_at', $yesterday);
+                        })
+                        ->when($dateFilter === 'both', function ($query) use ($today, $yesterday) {
+                            return $query->whereDate('created_at', $today)
+                                         ->orWhereDate('created_at', $yesterday);
+                        })
+                        ->when($dateFilter === 'last_week', function ($query) use ($lastWeekStart, $lastWeekEnd) {
+                            return $query->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd]);
+                        })
                         ->get();
-
+    
         $leadDistances = [];
-
+    
         foreach ($leads as $lead) {
             $distance = $this->haversineGreatCircleDistance(
                 $userLatitude,
@@ -116,23 +339,30 @@ class LeadsController extends Controller
                 $lead->hasBusiness->latitude,
                 $lead->hasBusiness->longitude
             );
-
+    
             $leadDistances[] = [
                 'lead' => $lead,
                 'distance' => $distance
             ];
         }
-
+    
         usort($leadDistances, function ($a, $b) {
             return $a['distance'] <=> $b['distance'];
         });
-
+    
         $data = [];
-
+    
         foreach ($leadDistances as $distanceInfo) {
             $lead = $distanceInfo['lead'];
             $business = $lead->hasBusiness;
             $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
+    
+            // Determine if the lead is from today, yesterday, or last week
+            $createdAt = Carbon::parse($lead->created_at);
+            $leadDate = $createdAt->isToday() ? 'today' :
+                        ($createdAt->isYesterday() ? 'yesterday' :
+                        ($createdAt->between($lastWeekStart, $lastWeekEnd) ? 'last_week' : 'other'));
+    
             $data[] = [
                 'user_id' => $user->id ?? 'N/A',
                 'first_name' => $user->first_name ?? 'N/A',
@@ -149,32 +379,34 @@ class LeadsController extends Controller
                 'lead_email' => $business->owner_email ?? 'N/A',
                 'lead_number' => $business->owner_number ?? 'N/A',
                 'pincode' => $business->pincode ?? 'N/A',
+                'lead_date' => $leadDate // New field indicating 'today', 'yesterday', 'last_week', or 'other'
             ];
         }
-
+    
         return response()->json([
             'code' => 200,
             'data' => $data,
+            'date_filter' => $dateFilter,
+            'total_done_leads_count' => $totalDoneLeadsCount, // Total count of all done leads
             'message' => 'Completed leads retrieved and sorted by distance successfully'
         ]);
-         if($leads->count()){
-            return response()->json([
-                'code'=>200,
-                'data'=>$leads,
-                'message'=>'leads retrive successfully'
-            ]);
-        } else {
-            return response()->json([
-                'code'=>200,
-                'data'=>[
-                    'leads'=>[]
-                ],
-                'message'=>'leads not found'
-            ]);
-        }
-
+        if($leads->count()){
+                    return response()->json([
+                        'code'=>200,
+                        'data'=>$leads,
+                        'message'=>'leads retrive successfully'
+                    ]);
+                } else {
+                    return response()->json([
+                        'code'=>200,
+                        'data'=>[
+                            'leads'=>[]
+                        ],
+                        'message'=>'leads not found'
+                    ]);
+                }
     }
-
+    
     // public function todayLeads(){
     //     try {
     //     $user = Auth::guard('api')->user();
@@ -326,7 +558,8 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
         }
 
     }
-
+  
+  
     public function createLead(){
         try {
         //    dd(request()->all());
