@@ -112,4 +112,20 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(CustomNotification::class);
     }
+    
+    public function wasRecentlyApproved()
+    {
+        return $this->ti_status == 1 && $this->last_login_at && $this->updated_at > $this->last_login_at;
+    }
+    
+    public function wasRecentlyRejected()
+    {
+        return $this->ti_status == 0 && $this->last_login_at && $this->updated_at > $this->last_login_at;
+    }
+    
+    public function wasRecentlyBlocked()
+    {
+        return $this->ti_status == 2 && $this->last_login_at && $this->updated_at > $this->last_login_at;
+    }
+    
 }

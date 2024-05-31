@@ -12,10 +12,11 @@ use App\Models\Leads;
 use App\Events\SubAdminCreated;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\NewTeamNotifications;
-
+use App\Notifications\AccountApprovalNotification;
 class TeamsController extends Controller
 {
     use \App\Traits\TraitController;
+    
     public function index(){
         return view('Teams.index',[
             'title'=>'Teams',
@@ -166,17 +167,7 @@ class TeamsController extends Controller
             if ($single = User::find(useId($id))) {
                 $single->ti_status= 1;
                 $single->save();
-                 // notifications
-                 $message = ' been   approved account  successfully';
-                 $data = [
-                   'message' =>$message,
-                   'user_name' =>'Super Admin has' ,  // Ensure there's a space between first name and last name
-               ];
-               $notification = new NewTeamNotifications($data);
-
-               $users =User::find(useId($id)); // Assuming you want to notify all users
-               Notification::send($users, $notification);
-
+               
                 return $this->resp(1, getMsg('approve', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));
@@ -185,17 +176,7 @@ class TeamsController extends Controller
             if ($single = User::find(useId($id))) {
                 $single->ti_status= 0;
                 $single->save();
-                  // notifications
-                  $message = ' been   reject your  account  ';
-                  $data = [
-                    'message' =>$message,
-                    'user_name' =>'Super Admin has' ,  // Ensure there's a space between first name and last name
-                ];
-                $notification = new NewTeamNotifications($data);
- 
-                $users =User::find(useId($id)); // Assuming you want to notify all users
-                Notification::send($users, $notification);
-
+              
                 return $this->resp(1, getMsg('reject', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));
@@ -204,22 +185,47 @@ class TeamsController extends Controller
             if ($single = User::find(useId($id))) {
                 $single->ti_status= 2;
                 $single->save();
-                  // notifications
-                  $message = ' been blocked   account  ';
-                  $data = [
-                    'message' =>$message,
-                    'user_name' =>'Super Admin has' ,  // Ensure there's a space between first name and last name
-                ];
-                $notification = new NewTeamNotifications($data);
- 
-                $users =User::find(useId($id)); // Assuming you want to notify all users
-                Notification::send($users, $notification);
+                
                 return $this->resp(1, getMsg('block', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));
             }
         }
     }
+    // public function statusChange($id)
+    // {
+    //     $user = User::find(useId($id));
+    //     if (!$user) {
+    //         return $this->resp(0, getMsg('not_found'));
+    //     }
+
+    //     $routeName = routeCurrName();
+
+    //     if ($routeName == "teams.aprove") {
+    //         $user->ti_status = 1;
+    //         $message = 'Your account has been approved successfully';
+    //     } elseif ($routeName == "teams.reject") {
+    //         $user->ti_status = 0;
+    //         $message = 'Your account has been rejected';
+    //     } elseif ($routeName == "teams.block") {
+    //         $user->ti_status = 2;
+    //         $message = 'Your account has been blocked';
+    //     } else {
+    //         return $this->resp(0, getMsg('unknown_action'));
+    //     }
+
+    //     $user->save();
+
+    //     // Notification for account status change
+    //     $data = [
+    //         'message' => $message,
+    //         'user_name' => 'Admin',
+    //     ];
+    //     $notification = new AccountApprovalNotification($data);
+    //     Notification::send($user, $notification);
+
+    //     return $this->resp(1, getMsg($routeName, ['name' => "Team Member"]));
+    // }
 
     //   public function TeamReport(Request $request)
     // {

@@ -88,7 +88,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
         
             // notifications
             Route::get('/notifications', ('NotificationController@showNotifications'))->middleware('auth');
-            Route::post('/mark-notification-as-read/{id}', ('NotificationController@markAsRead'))->middleware('auth');
+            Route::post('/notifications/mark-as-read/{id}', ('NotificationController@markAsRead'))->middleware('auth');
             // Route to show all notifications
             Route::get('/all-notifications', 'NotificationController@showAllNotifications')->name('all-notifications')->middleware('auth');
 

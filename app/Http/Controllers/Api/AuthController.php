@@ -15,6 +15,9 @@ use Illuminate\Support\Carbon;
 use Lcobucci\JWT\Validation\Constraint\ValidAt;
 use App\Notifications\LoginNotification;
 use App\Notifications\NewUserNotification;
+use App\Notifications\NewTeamNotifications;
+use App\Notifications\RegistrationNotification;
+use App\Notifications\AccountApprovalNotification;
 
 class AuthController extends Controller
 {
@@ -53,13 +56,33 @@ class AuthController extends Controller
                         'data' => [],
                     ], 401);
                 }
+
                 // notification method
-                $data = [
-                    'message' => ' has logged in successfully!',
-                    'user_name' => $user->first_name . ' ' . $user->last_name,  // Ensure there's a space between first name and last name
-                ];
-        
-                $user->notify(new LoginNotification($data));
+                $loginTime = now()->toDateTimeString();
+               
+                $user->notify(new LoginNotification($user, $loginTime));
+             // Check for recent status change notification
+                $statusChangeNotification = null;
+
+                if ($user->wasRecentlyApproved()) {
+                    $statusChangeNotification = 'Your account has been approved successfully';
+                } elseif ($user->wasRecentlyRejected()) {
+                    $statusChangeNotification = 'Your account has been rejected';
+                } elseif ($user->wasRecentlyBlocked()) {
+                    $statusChangeNotification = 'Your account has been blocked';
+                }
+
+                if ($statusChangeNotification) {
+                    $user->notify(new AccountApprovalNotification([
+                        'user_name' => 'Admin',
+                        'message' => $statusChangeNotification
+                    ]));
+                }
+                // Update last login time
+                $user->last_login_at = now();
+                $user->save();
+
+
                 $user = Auth::guard('api')->user();
                 return response()->json([
                     "code" => 200,
@@ -116,18 +139,14 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password),
             ]);
             // $user->assignRole('user');
-            // notification method 
-            $data = [
-                'message' => ' has created your account  successfully!',
-                'user_name' => $user->first_name . ' ' . $user->last_name,  // Ensure there's a space between first name and last name
-            ];
-    
-            $user->notify(new NewUserNotification($data));
+             // notification method
+                $loginTime = now()->toDateTimeString();
+                $user->notify(new RegistrationNotification($user,$loginTime));
 
             return response()->json([
                 'code' => 200,
                 'message' => 'User created successfully',
-                'data' => ['user' => $user]
+                'data' => ['user' => $user],
             ]);
         } catch (\Throwable $th) {
             return response()->json([

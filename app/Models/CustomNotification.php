@@ -21,4 +21,11 @@ class CustomNotification extends Model
     protected $casts = [
         'data' => 'array',
     ];
+
+    public function markAsRead($at = null)
+    {
+        $this->forceFill(['read_at' => $at ?: $this->freshTimestamp()])
+             ->save();
+    }
+
 }

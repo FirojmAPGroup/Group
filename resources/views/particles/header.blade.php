@@ -26,7 +26,7 @@
                 <div class="header-left"></div>
 
                 <ul class="navbar-nav header-right">
-                    <li class="nav-item dropdown notification_dropdown">
+                    {{-- <li class="nav-item dropdown notification_dropdown">
                         <a class="nav-link" href="#" role="button" data-toggle="dropdown">
                             <i class="mdi mdi-bell"></i>
                             @if(isset($unreadCount) && $unreadCount > 0)
@@ -58,7 +58,42 @@
                                 </ul>
                             @endif
                         </div>
+                    </li> --}}
+                    <li class="nav-item dropdown notification_dropdown">
+                        <a class="nav-link" href="#" role="button" data-toggle="dropdown">
+                            <i class="mdi mdi-bell"></i>
+                            @if($unreadCount > 0)
+                                <div class="pulse-css"></div>
+                            @endif
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            @if($notifications->count() > 0)
+                                <ul class="list-unstyled">
+                                    @foreach ($notifications  as $notification)
+                                        <li class="media dropdown-item @unless($notification->read_at) unread @endif" onclick="markAsRead('{{ $notification->id }}')">
+                                            <span class="success"><i class="ti-image"></i></span>
+                                            <div class="media-body">
+                                                <a href="#">
+                                                    <p class="notification-message">
+                                                        <strong>{{ $notification->data['user_name'] ?? 'Unknown' }}</strong>:
+                                                        {{ $notification->data['message'] }}
+                                                    </p>
+                                                </a>
+                                            </div>
+                                            <span class="notify-time">{{ $notification->created_at->diffForHumans() }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                                <a class="all-notification" href="{{ route('all-notifications') }}">See all notifications <i class="ti-arrow-right"></i></a>
+                            @else
+                                <ul class="list-unstyled">
+                                    <li class="media dropdown-item">No notifications</li>
+                                </ul>
+                            @endif
+                        </div>
                     </li>
+                    
+                    
                     
                     <li class="nav-item dropdown header-profile">
                         <a class="nav-link" href="#" role="button" data-toggle="dropdown">
@@ -91,21 +126,49 @@
             }
         });
     });
+    function fetchNotifications() {
+    $.ajax({
+        url: '/notifications', // Adjust according to your API
+        type: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'), // Handle your auth token securely
+        },
+        success: function(data) {
+            updateNotificationDropdown(data.notifications);
+            updateNotificationDot(data.unreadCount);
+        },
+        error: function(error) {
+            console.error('Error fetching notifications:', error);
+        }
+    });
+}
 
-    function markAsRead(notificationId) {
-        // Make an AJAX request to mark the notification as read
-        $.ajax({
-            url: '/mark-notification-as-read/' + notificationId,
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            success: function(response) {
-                // Optionally, update the UI to reflect the notification was read
-            },
-            error: function(xhr, status, error) {
-                console.error(error);
-            }
-        });
+function markAsRead(notificationId) {
+    $.ajax({
+        url: '/notifications/mark-as-read/' + notificationId,
+        method: 'post',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') // Ensure CSRF token is sent
+        },
+        success: function(response) {
+            // Assume response contains the current count of unread notifications
+            updateNotificationDot(response.unreadCount);
+            fetchNotifications(); // Refresh the notification list
+        },
+        error: function(error) {
+            console.error('Error marking notification as read:', error);
+        }
+    });
+}
+
+
+function updateNotificationDot(unreadCount) {
+    if (unreadCount > 0) {
+        $('.pulse-css').show(); // Shows the dot if there are unread notifications
+    } else {
+        $('.pulse-css').hide(); // Hides the dot if all are read
     }
+}
+
+
 </script>

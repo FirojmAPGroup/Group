@@ -11,17 +11,19 @@ class NotificationController extends Controller
     public function showNotifications()
     {
         $user = Auth::user();
-
-        // Get notifications from the last 48 hours
+    
+        // Get the latest 2 notifications
         $notifications = $user->notifications()
             ->where('created_at', '>=', Carbon::now()->subDays(2)) // Filter by notifications from the last 48 hours
             ->orderBy('created_at', 'desc') // Order by creation time, newest first
+            ->take(2) // Limit to 2 notifications
             ->get();
-
+    
         $unreadCount = $user->unreadNotifications()->count();
-
+    
         return view('particles.header', compact('notifications', 'unreadCount'));
     }
+    
 
     public function showAllNotifications()
     {
@@ -33,12 +35,15 @@ class NotificationController extends Controller
         return view('notifications.all', compact('notifications'));
     }
 
-    public function markAsRead($id)
+
+
+    public function markAsRead($notificationId)
     {
-        $notification = Auth::user()->notifications()->where('id', $id)->first();
+        $user = Auth::user();
+        $notification = $user->notifications->find($notificationId);
         if ($notification) {
             $notification->markAsRead();
         }
-        return response()->json(['message' => 'Notification marked as read']);
+        return response()->json(['success' => true]);
     }
 }

@@ -3,17 +3,6 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
-
 Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers\Api', 'middleware' => ['api']], function () {
     Route::group(['prefix' => '', 'middleware' => []], function () {
         // Without Login
@@ -27,7 +16,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers\Api', 'middl
             // Route::post('/forgot-password', 'AuthController@forgot_password')->name('api.forgot-password');
         });
     });
- 
+    
     Route::group(['prefix' => '', 'middleware' => ["apiuser"]], function () {
         // With Login
         Route::group(['prefix' => ''], function () {
@@ -44,8 +33,13 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers\Api', 'middl
             Route::post('/add-lead','LeadsController@createLead')->name('api.createLead');
             Route::get('/detail-lead/{id}','LeadsController@detailLeadView')->name('api.detailLeadView');
             Route::post('/update-lead/{id}','LeadsController@updateLead')->name('api.updateLead');
+
+            // Route::get('/notifications', 'Notifications@getNotifications')->name('api.notifications');
+
         });
     });
-
+    Route::group(['middleware' => ['auth:api']], function () {
+        Route::get('/notifications', 'Notifications@getNotifications')->name('api.notifications');
+    });
 
 });

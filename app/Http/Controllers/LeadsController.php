@@ -15,7 +15,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Notifications\NewBusinessNotification;
 use Illuminate\Support\Facades\Notification;
 use Carbon\Carbon;
-
+use App\Notifications\NewLeadNotification;
 
 class LeadsController extends Controller
 {
@@ -407,6 +407,12 @@ class LeadsController extends Controller
             $lead->save();
             $business->ti_status = 5;
             $business->save();
+            // Notify the assigned user
+             $assigningUser = Auth::user(); // Assuming the current logged-in user is assigning the lead
+             $user->notify(new NewLeadNotification([
+                'message' => ' have been assigned a new lead. lead Name ' . $business->owner_first_name .' ' . $business->owner_last_name,
+                'user_name' => $assigningUser->first_name . ' ' . $assigningUser->last_name,
+            ]));
             return $this->resp(1,"Lead Asign Successfuly",['url'=>routePut('teams.view')],200);
         } catch (\Throwable $th) {
             return $this->resp(0,$th->getMessage(),[],500);
