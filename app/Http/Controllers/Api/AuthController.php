@@ -198,33 +198,76 @@ class AuthController extends Controller
         }
     }
 
+    // public function forgot_password(Request $request)
+    // {
+    //     $input = $request->all();
+    //     $rules = array(
+    //         'email' => "required|email",
+    //     );
+    //     $validator = Validator::make($input, $rules);
+    //     if ($validator->fails()) {
+    //         $arr = array("status" => 400, "message" => $validator->errors()->first(), "data" => array());
+    //     } else {
+    //         try {
+    //             $response = Password::sendResetLink($request->only('email'));
+    //             switch ($response) {
+    //                 case Password::RESET_LINK_SENT:
+    //                     return response()->json(array("status" => 200, "message" => trans($response), "data" => array()));
+    //                 case Password::INVALID_USER:
+    //                     return response()->json(array("status" => 400, "message" => trans($response), "data" => array()));
+    //             }
+    //         } catch (\Throwable $ex) {
+    //             $arr = array("status" => 400, "message" => $ex->getMessage(), "data" => []);
+    //         } catch (\Throwable $ex) {
+    //             $arr = array("status" => 400, "message" => $ex->getMessage(), "data" => []);
+    //         }
+    //     }
+    //     return response()->json($arr);
+    // }
     public function forgot_password(Request $request)
     {
         $input = $request->all();
-        $rules = array(
-            'email' => "required|email",
-        );
+        $rules = [
+            'email' => 'required|email',
+        ];
+        
         $validator = Validator::make($input, $rules);
+        
         if ($validator->fails()) {
-            $arr = array("status" => 400, "message" => $validator->errors()->first(), "data" => array());
-        } else {
-            try {
-                $response = Password::sendResetLink($request->only('email'));
-                switch ($response) {
-                    case Password::RESET_LINK_SENT:
-                        return response()->json(array("status" => 200, "message" => trans($response), "data" => array()));
-                    case Password::INVALID_USER:
-                        return response()->json(array("status" => 400, "message" => trans($response), "data" => array()));
-                }
-            } catch (\Throwable $ex) {
-                $arr = array("status" => 400, "message" => $ex->getMessage(), "data" => []);
-            } catch (\Throwable $ex) {
-                $arr = array("status" => 400, "message" => $ex->getMessage(), "data" => []);
-            }
+            return response()->json([
+                'status' => 400,
+                'message' => $validator->errors()->first(),
+                'data' => [],
+            ]);
         }
-        return response()->json($arr);
+        
+        try {
+            $response = Password::sendResetLink($request->only('email'));
+            
+            switch ($response) {
+                case Password::RESET_LINK_SENT:
+                    return response()->json([
+                        'status' => 200,
+                        'message' => trans($response),
+                        'data' => [],
+                    ]);
+                    
+                case Password::INVALID_USER:
+                    return response()->json([
+                        'status' => 400,
+                        'message' => trans($response),
+                        'data' => [],
+                    ]);
+            }
+        } catch (\Exception $ex) {
+            return response()->json([
+                'status' => 400,
+                'message' => $ex->getMessage(),
+                'data' => [],
+            ]);
+        }
     }
-
+    
     public function updateFCM()
     {
         try {
@@ -300,22 +343,74 @@ class AuthController extends Controller
         }
     }
 
+    // public function updateProfile()
+    // {
+    //     try {
+    //         //    dd(request()->all());
+    //         $validator = Validator::make(request()->all(), [
+    //             'first_name' => 'required',
+    //             'last_name' => 'required',
+    //             'birth_date' => 'required',
+    //             'gender' => 'required',
+
+    //         ], [
+    //             'first_name.required' => 'please provide first name',
+    //             'last_name.required' => 'please provide last name',
+    //             'birth_date.required' => 'please provide birthdate',
+    //             'gender.required' => 'please provide gender',
+    //         ]);
+    //         if ($validator->fails()) {
+    //             return response()->json([
+    //                 'code' => 403,
+    //                 'message' => $validator->errors()->first(),
+    //                 'data' => []
+    //             ]);
+    //         }
+    //         $user = User::find(Auth::guard('api')->user()->id);
+    //         if ($user) {
+    //             $user->first_name = request()->get('first_name');
+    //             $user->last_name = request()->get('last_name');
+    //             $user->gender = request()->get('gender');
+    //             $user->birth_date = request()->get('birth_date');
+    //             if (request()->hasFile('profile_image')) {
+    //                 $user->putFile('profile_image', request()->file('profile_image'), '');
+    //             }
+    //             $user->save();
+    //             return response()->json([
+    //                 'code' => 200,
+    //                 'message' => 'User Updated Successfuly',
+    //                 'data' => $user
+    //             ]);
+    //         } else {
+    //             return response()->json([
+    //                 'code' => 403,
+    //                 'message' => "Unauthorised Access",
+    //                 'data' => []
+    //             ]);
+    //         }
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'code' => $th->getCode(),
+    //             'message' => $th->getMessage(),
+    //             'data' => []
+    //         ]);
+    //     }
+    // }
     public function updateProfile()
     {
         try {
-            //    dd(request()->all());
             $validator = Validator::make(request()->all(), [
                 'first_name' => 'required',
                 'last_name' => 'required',
                 'birth_date' => 'required',
                 'gender' => 'required',
-
             ], [
                 'first_name.required' => 'please provide first name',
                 'last_name.required' => 'please provide last name',
                 'birth_date.required' => 'please provide birthdate',
                 'gender.required' => 'please provide gender',
             ]);
+    
             if ($validator->fails()) {
                 return response()->json([
                     'code' => 403,
@@ -323,20 +418,35 @@ class AuthController extends Controller
                     'data' => []
                 ]);
             }
+    
             $user = User::find(Auth::guard('api')->user()->id);
             if ($user) {
                 $user->first_name = request()->get('first_name');
                 $user->last_name = request()->get('last_name');
                 $user->gender = request()->get('gender');
                 $user->birth_date = request()->get('birth_date');
+    
+                $profileImagePath = null;
                 if (request()->hasFile('profile_image')) {
-                    $user->putFile('profile_image', request()->file('profile_image'), '');
+                    // Handle the uploaded file as needed
+                    $file = request()->file('profile_image');
+                    // Generate a path or name for the file
+                    $profileImagePath = 'trustwaveimage/' . $file->getClientOriginalName();
+    
+                    // Optionally, you could save it temporarily if needed for further processing
+                    // $file->move(public_path('temp_images'), $file->getClientOriginalName());
                 }
+    
+                // Save user information (excluding the profile image path if not needed in DB)
                 $user->save();
+    
                 return response()->json([
                     'code' => 200,
-                    'message' => 'User Updated Successfuly',
-                    'data' => $user
+                    'message' => 'User Updated Successfully',
+                    'data' => [
+                        'user' => $user,
+                        'profile_image_path' => $profileImagePath
+                    ]
                 ]);
             } else {
                 return response()->json([
@@ -353,7 +463,9 @@ class AuthController extends Controller
             ]);
         }
     }
-
+    
+    
+    
     public function userProfile()
     {
         try {
