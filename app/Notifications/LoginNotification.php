@@ -28,7 +28,7 @@ class LoginNotification extends Notification
     public function toArray($notifiable)
     {
         return [
-            'message' => $this->user->first_name . ' ' . $this->user->last_name . ' has logged in successfully!',
+            'message' => ' has logged in successfully!',
             'user_id' => $this->user->id,
             'user_name' => $this->user->first_name . ' ' . $this->user->last_name,
             'login_time' => $this->loginTime,

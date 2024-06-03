@@ -40,6 +40,8 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers\Api', 'middl
     });
     Route::group(['middleware' => ['auth:api']], function () {
         Route::get('/notifications', 'Notifications@getNotifications')->name('api.notifications');
+        Route::post('/notifications/read/{id}', 'Notifications@markAsRead')->name('api.notificationsread');
+
     });
 
 });

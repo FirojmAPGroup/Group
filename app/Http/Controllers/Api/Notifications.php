@@ -46,4 +46,27 @@ class Notifications extends Controller
             "data" => $notifications
         ]);
     }
+    public function markAsRead(Request $request, $id)
+    {
+        $user = Auth::guard('api')->user();
+
+        // Find the notification by id
+        $notification = $user->notifications()->where('id', $id)->first();
+
+        if ($notification) {
+            // Mark the notification as read
+            $notification->markAsRead();
+            return response()->json([
+                'code' => 200,
+                'message' => 'Notification marked as read',
+                'data' => $notification
+            ]);
+        } else {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Notification not found',
+                'data' => []
+            ], 404);
+        }
+    }
 }

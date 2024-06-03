@@ -167,7 +167,12 @@ class TeamsController extends Controller
             if ($single = User::find(useId($id))) {
                 $single->ti_status= 1;
                 $single->save();
-               
+                // Send notification
+
+                $single->notify(new AccountApprovalNotification([
+                    'user_name' => $single->first_name. ' '. $single->last_name,
+                    'message' => 'your account is approved '
+                ]));
                 return $this->resp(1, getMsg('approve', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));
@@ -176,7 +181,11 @@ class TeamsController extends Controller
             if ($single = User::find(useId($id))) {
                 $single->ti_status= 0;
                 $single->save();
-              
+                // notifications
+                $single->notify(new AccountApprovalNotification([
+                    'user_name' => 'Admin',
+                    'message' => 'your account is reject '
+                ]));
                 return $this->resp(1, getMsg('reject', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));
@@ -185,48 +194,18 @@ class TeamsController extends Controller
             if ($single = User::find(useId($id))) {
                 $single->ti_status= 2;
                 $single->save();
-                
+                // notification
+                $single->notify(new AccountApprovalNotification([
+                    'user_name' => 'Admin',
+                    'message' => 'your account is blocked '
+                ]));
                 return $this->resp(1, getMsg('block', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));
             }
         }
     }
-    // public function statusChange($id)
-    // {
-    //     $user = User::find(useId($id));
-    //     if (!$user) {
-    //         return $this->resp(0, getMsg('not_found'));
-    //     }
-
-    //     $routeName = routeCurrName();
-
-    //     if ($routeName == "teams.aprove") {
-    //         $user->ti_status = 1;
-    //         $message = 'Your account has been approved successfully';
-    //     } elseif ($routeName == "teams.reject") {
-    //         $user->ti_status = 0;
-    //         $message = 'Your account has been rejected';
-    //     } elseif ($routeName == "teams.block") {
-    //         $user->ti_status = 2;
-    //         $message = 'Your account has been blocked';
-    //     } else {
-    //         return $this->resp(0, getMsg('unknown_action'));
-    //     }
-
-    //     $user->save();
-
-    //     // Notification for account status change
-    //     $data = [
-    //         'message' => $message,
-    //         'user_name' => 'Admin',
-    //     ];
-    //     $notification = new AccountApprovalNotification($data);
-    //     Notification::send($user, $notification);
-
-    //     return $this->resp(1, getMsg($routeName, ['name' => "Team Member"]));
-    // }
-
+ 
     //   public function TeamReport(Request $request)
     // {
     //     $Options = [

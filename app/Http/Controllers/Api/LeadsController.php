@@ -715,41 +715,99 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
 
     
 
-    public function leadReport(){
+    // public function leadReport(){
+    //     try {
+    //         $status = request()->has('status') &&  request()->get('status') == "completed" ? 1: 0;
+    //         $startDate = Carbon::now()->startOfMonth(); // You can set the start date as needed
+    //         $endDate = Carbon::now()->endOfMonth(); // Current date
+    //         $records = Leads::selectRaw('DATE(updated_at) as date, COUNT(*) as count')
+    //         ->whereBetween('updated_at', [$startDate, $endDate])
+    //         ->where('ti_status',$status)
+    //         ->groupBy('date')
+    //         ->get();
+
+    //         $dateRange = collect(Carbon::parse($startDate)->daysUntil($endDate)->toArray());
+    //         $chartData = $dateRange->map(function ($date) use ($records) {
+    //             $record = $records->firstWhere('date', $date->toDateString());
+
+    //             return [
+    //                 'date' => $date->toDateString(),
+    //                 'count' => $record ? $record->count : 0,
+    //             ];
+    //         });
+    //         return response()->json([
+    //             'code'=>200,
+    //             'message'=>'Chart Data found',
+    //             'data' => $chartData
+    //         ]);
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'code'=>$th->getCode(),
+    //             'message'=>$th->getMessage(),
+    //             'data' => []
+    //         ]);
+    //     }
+
+    // }
+    public function leadReport() {
         try {
-            $status = request()->has('status') &&  request()->get('status') == "completed" ? 1: 0;
-            $startDate = Carbon::now()->startOfMonth(); // You can set the start date as needed
-            $endDate = Carbon::now()->endOfMonth(); // Current date
+            $status = request()->has('status') && request()->get('status') == "completed" ? 1 : 0;
+    
+            // Calculate the start and end dates for each week
+            $currentWeekStart = Carbon::now()->startOfWeek();
+            $currentWeekEnd = Carbon::now();
+            
+            $lastWeek1Start = $currentWeekStart->copy()->subWeek();
+            $lastWeek1End = $currentWeekStart->copy()->subSecond();
+    
+            $lastWeek2Start = $lastWeek1Start->copy()->subWeek();
+            $lastWeek2End = $lastWeek1Start->copy()->subSecond();
+    
+            $lastWeek3Start = $lastWeek2Start->copy()->subWeek();
+            $lastWeek3End = $lastWeek2Start->copy()->subSecond();
+    
+            // Fetch records for each week
             $records = Leads::selectRaw('DATE(updated_at) as date, COUNT(*) as count')
-            ->whereBetween('updated_at', [$startDate, $endDate])
-            ->where('ti_status',$status)
-            ->groupBy('date')
-            ->get();
-
-            $dateRange = collect(Carbon::parse($startDate)->daysUntil($endDate)->toArray());
-            $chartData = $dateRange->map(function ($date) use ($records) {
-                $record = $records->firstWhere('date', $date->toDateString());
-
-                return [
-                    'date' => $date->toDateString(),
-                    'count' => $record ? $record->count : 0,
-                ];
-            });
+                ->whereBetween('updated_at', [$lastWeek3Start, $currentWeekEnd])
+                ->where('ti_status', $status)
+                ->groupBy('date')
+                ->get();
+    
+            // Helper function to get counts for a specific week
+            $getCountsForWeek = function($start, $end) use ($records) {
+                $dateRange = collect(Carbon::parse($start)->daysUntil($end)->toArray());
+                return $dateRange->map(function ($date) use ($records) {
+                    $record = $records->firstWhere('date', $date->toDateString());
+                    return [
+                        'date' => $date->toDateString(),
+                        'day' => $date->format('l'), // Get the day of the week
+                        'count' => $record ? $record->count : 0,
+                    ];
+                });
+            };
+    
+            // Get counts for each week
+            $data = [
+                'last_week_3' => $getCountsForWeek($lastWeek3Start, $lastWeek3End),
+                'last_week_2' => $getCountsForWeek($lastWeek2Start, $lastWeek2End),
+                'last_week_1' => $getCountsForWeek($lastWeek1Start, $lastWeek1End),
+                'current_week' => $getCountsForWeek($currentWeekStart, $currentWeekEnd),
+            ];
+    
             return response()->json([
-                'code'=>200,
-                'message'=>'Chart Data found',
-                'data' => $chartData
+                'code' => 200,
+                'message' => 'Chart Data found successfully',
+                'data' => $data
             ]);
         } catch (\Throwable $th) {
             return response()->json([
-                'code'=>$th->getCode(),
-                'message'=>$th->getMessage(),
+                'code' => $th->getCode(),
+                'message' => $th->getMessage(),
                 'data' => []
             ]);
         }
-
     }
-  
+ 
   
     public function createLead(){
         try {
@@ -766,8 +824,8 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
             'city'=>'required|max:25',
             'area'=>'required|max:25',
             'pincode'=>'required|digits:6',
-            'latitude'=>'required|max:10',
-            'longitude'=>'required|max:10'
+            'latitude'=>'nullable|max:10',
+            'longitude'=>'nullable|max:10'
            ]);
            if($validator->fails()){
                 return response()->json([
@@ -788,8 +846,8 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
             'state'=>request()->get('state'),
             'country'=>request()->get('country'),
             'area'=>request()->get('area'),
-            'latitude'=>request()->get('latitude'),
-            'longitude'=>request()->get('longitude')
+            'latitude' => request()->get('latitude') ?? 0,  // Default value
+            'longitude' => request()->get('longitude') ?? 0,  // Default value
            ];
            $business = Business::create($leadData);
         //    $asignLeadData  = [

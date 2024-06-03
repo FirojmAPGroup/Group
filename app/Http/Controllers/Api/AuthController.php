@@ -61,7 +61,7 @@ class AuthController extends Controller
                 $loginTime = now()->toDateTimeString();
                
                 $user->notify(new LoginNotification($user, $loginTime));
-             // Check for recent status change notification
+                // Check for recent status change notification
                 $statusChangeNotification = null;
 
                 if ($user->wasRecentlyApproved()) {
@@ -71,10 +71,10 @@ class AuthController extends Controller
                 } elseif ($user->wasRecentlyBlocked()) {
                     $statusChangeNotification = 'Your account has been blocked';
                 }
-
+    
                 if ($statusChangeNotification) {
                     $user->notify(new AccountApprovalNotification([
-                        'user_name' => 'Admin',
+                        'user_name' => $user->first_name,
                         'message' => $statusChangeNotification
                     ]));
                 }
