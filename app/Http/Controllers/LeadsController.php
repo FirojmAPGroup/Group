@@ -408,10 +408,11 @@ class LeadsController extends Controller
             $business->ti_status = 5;
             $business->save();
             // Notify the assigned user
+            // 2.Hey Arpita! A new lead, "Lead Name" has been assigned to you.
              $assigningUser = Auth::user(); // Assuming the current logged-in user is assigning the lead
              $user->notify(new NewLeadNotification([
-                'message' => ' have been assigned a new lead. lead Name ' . $business->owner_first_name .' ' . $business->owner_last_name,
-                'user_name' => $assigningUser->first_name . ' ' . $assigningUser->last_name,
+                'message' => ' A new lead, ' . $business->owner_first_name .' ' . $business->owner_last_name .' has been assigned to you.',
+                'user_name' =>'Hey '. $assigningUser->first_name . ' ' . $assigningUser->last_name .'!',
             ]));
             return $this->resp(1,"Lead Asign Successfuly",['url'=>routePut('teams.view')],200);
         } catch (\Throwable $th) {

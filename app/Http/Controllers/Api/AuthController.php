@@ -17,6 +17,7 @@ use App\Notifications\LoginNotification;
 use App\Notifications\NewUserNotification;
 use App\Notifications\NewTeamNotifications;
 use App\Notifications\RegistrationNotification;
+use Illuminate\Support\Facades\Storage;
 use App\Notifications\AccountApprovalNotification;
 
 class AuthController extends Controller
@@ -65,11 +66,11 @@ class AuthController extends Controller
                 $statusChangeNotification = null;
 
                 if ($user->wasRecentlyApproved()) {
-                    $statusChangeNotification = 'Your account has been approved successfully';
+                    $statusChangeNotification = 'Hey ! Your account has been approved. Now explore the app.';
                 } elseif ($user->wasRecentlyRejected()) {
-                    $statusChangeNotification = 'Your account has been rejected';
+                    $statusChangeNotification = 'Your account has been rejected.';
                 } elseif ($user->wasRecentlyBlocked()) {
-                    $statusChangeNotification = 'Your account has been blocked';
+                    $statusChangeNotification = 'Your account has been blocked.';
                 }
     
                 if ($statusChangeNotification) {
@@ -426,32 +427,35 @@ class AuthController extends Controller
                 $user->gender = request()->get('gender');
                 $user->birth_date = request()->get('birth_date');
     
-                $profileImagePath = null;
                 if (request()->hasFile('profile_image')) {
-                    // Handle the uploaded file as needed
-                    $file = request()->file('profile_image');
-                    // Generate a path or name for the file
-                    $profileImagePath = 'trustwaveimage/' . $file->getClientOriginalName();
-    
-                    // Optionally, you could save it temporarily if needed for further processing
-                    // $file->move(public_path('temp_images'), $file->getClientOriginalName());
+                    // Delete old image if exists
+                    if ($user->profile_image) {
+                        Storage::delete($user->profile_image);
+                    }
+                    
+                    // Store the new image
+                    $path = request()->file('profile_image')->store('profile_images');
+                    $user->profile_image = $path;
                 }
     
-                // Save user information (excluding the profile image path if not needed in DB)
                 $user->save();
+    
+                // Add the base URL to the profile_image
+                $profileImageUrl = $user->profile_image ? url('storage/' . $user->profile_image) : null;
     
                 return response()->json([
                     'code' => 200,
                     'message' => 'User Updated Successfully',
                     'data' => [
                         'user' => $user,
-                        'profile_image_path' => $profileImagePath
+                        'profile_image_url' => $profileImageUrl,
+                        'profile_image_path' => $user->profile_image,
                     ]
                 ]);
             } else {
                 return response()->json([
                     'code' => 403,
-                    'message' => "Unauthorised Access",
+                    'message' => "Unauthorized Access",
                     'data' => []
                 ]);
             }
@@ -463,6 +467,7 @@ class AuthController extends Controller
             ]);
         }
     }
+    
     
     
     

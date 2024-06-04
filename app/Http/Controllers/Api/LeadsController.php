@@ -865,14 +865,16 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
         //    dd($business);
 
           // notifications 
-        $message = ' Lead Created Successfully, contact admin to approve and assign';
+        //   3.Hey Arpita! A new business, "Business Name" has been created.
+
+        // $message = $business->name.'  has been created.';
+        $users = User::find(Auth::guard('api')->user()->id);
 
           $data = [
-            'message' =>$message,
-            'user_name' =>$business->name ,  // Ensure there's a space between first name and last name
+            'message' =>'A new business '. $business->name.' has been created.',
+            'user_name' => 'Hey ' .$users->first_name.' ' .$users->last_name .' !',  // Ensure there's a space between first name and last name
         ];
         $notification = new NewLeadNotification($data);
-        $users = User::all(); // Assuming you want to notify all users
         Notification::send($users, $notification);
 
        
@@ -1093,10 +1095,12 @@ private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $la
                 $leadData['selfie'] = $lead->getSelfieUrl();
 
                 // notifications
-                $message = $business->name . ' Lead updated successfully'; // Update the message to indicate lead update
+                // 4.The lead, "Lead Name" has been successfully updated.
+
+                $message = $business->name . ' Lead  successfully updated'; // Update the message to indicate lead update
                 $data = [
                     'message' => $message,
-                    'user_name' => $lead->user->first_name . ' ' . $lead->user->last_name . ' Has completed',  // Ensure there's a space between first name and last name
+                    'user_name' => 'Hey '.$lead->user->first_name . ' ' . $lead->user->last_name . ' !',  // Ensure there's a space between first name and last name
                 ];
                 $lead->user->notify(new NewLeadNotification($data));
 
