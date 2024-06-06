@@ -627,7 +627,7 @@ class LeadsController extends Controller
     //         ]);
     //     }
     // }
- 
+
 public function todayLeads(Request $request)
 {
     try {
@@ -680,6 +680,8 @@ public function todayLeads(Request $request)
                 'lead_email' => $business->owner_email ?? 'N/A',
                 'lead_number' => $business->owner_number ?? 'N/A',
                 'pincode' => $business->pincode ?? 'N/A',
+                'lead_latitude' => $business->latitude ?? 'N/A',
+                'lead_longtitue' => $business->longitude ?? 'N/A',
             ];
         }
 

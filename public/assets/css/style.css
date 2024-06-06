@@ -16576,11 +16576,11 @@ button {
 
 .stat-widget-one .stat-text {
   font-size: 14px;
-  color: #868e96; }
+  color: #FFF; }
 
 .stat-widget-one .stat-digit {
   font-size: 24px;
-  color: #373757; }
+  color: #FFFF; }
 
 .stat-widget-two {
   text-align: center; }
@@ -17279,7 +17279,7 @@ span#counter {
   background: #1da1f2;
   fill: #1da1f2; }
 
-.bg-youtube {
+.bg-google-plus  {
   background: #cd201f;
   fill: #cd201f; }
 
@@ -17288,7 +17288,57 @@ span#counter {
   fill: #dd4b39; }
 
 .bg-linkedin {
-  background: #007bb6; }
+  background: #ff9800; }
+  .bg-facebook {
+    background-color: #3b5998;
+}
+
+.bg-twitter {
+    background-color: #1da1f2;
+}
+
+
+
+.legend-color {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+}
+
+.ct-series-a .ct-slice-pie {
+    fill: #3b5998;
+}
+
+.ct-series-b .ct-slice-pie {
+    fill: #1da1f2;
+}
+
+.ct-series-c .ct-slice-pie {
+    fill: #ff0000;
+}
+.ct-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 5px;
+  border-radius: 3px;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  opacity: 0;
+}
+/* Bar Chart Colors */
+.ct-series-a .ct-bar {
+    stroke: #3b5998;
+}
+
+.ct-series-b .ct-bar {
+    stroke: #1da1f2;
+}
+
+.ct-series-c .ct-bar {
+    stroke: #ff0000;
+}
 
 .recent-comment .media {
   border-bottom: 1px solid #e7e7e7;

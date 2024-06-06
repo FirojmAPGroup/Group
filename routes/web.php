@@ -32,7 +32,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
             Route::get('/calculateDistance','LeadsController@calculateDistance')->name('app.calculateDistance');
 
                   // Profile-User
-             Route::get('profile', 'ProfileController@show')->name('profile.view');
+             Route::get('profile/{id}', 'ProfileController@show')->name('profile.view');
              Route::get('profile/edit/{id}', 'ProfileController@edit')->name('profile.edit');
              Route::put('profile/update/{id}', 'ProfileController@update')->name('profile.update');
              Route::get('update-password/{id}', 'ProfileController@updatepassword')->name('profile.updatePassword');
@@ -63,7 +63,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
               // TeamReport
             Route::get('team/report', 'TeamsController@TeamReport')->name('teams.view');
             Route::post('team/loadlist', 'TeamsController@loadLists')->name('teams.load');
-
+            Route::get('team/detail/{id}', 'TeamsController@showDetail')->name('teams.detail');
             
             //pages
             Route::match(['get','post'],'/pages/about-us', 'PagesController@aboutUsForm')->name('pages.about-us');
@@ -74,6 +74,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
 
             //Leads
             Route::get('/leads/create','LeadsController@create')->name('leads.create');
+            Route::get('leads/view/{id}','LeadsController@view')->name('leads.view');
             Route::get('/leads/edit/{id}','LeadsController@create')->name('leads.edit');
             Route::post('/leads/save','LeadsController@save')->name('leads.save');
             Route::get('/leads','LeadsController@index')->name('leads.list');

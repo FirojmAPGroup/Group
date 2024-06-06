@@ -29,10 +29,12 @@ class Leads extends Model
         return $this->hasUser;
     }
 
+    // public static function TotalVisits(){
+    //     return self::count();
+    // }
     public static function TotalVisits(){
-        return self::count();
+        return business::count();
     }
-
     public static function completedVisit(){
         return self::where('ti_status',1)->count();
     }
@@ -41,7 +43,9 @@ class Leads extends Model
     public static function pendingVisit(){
         return self::where('ti_status',2)->count();
     }
-
+    public static function unassignedVisit(){
+        return business::where('ti_status',0)->count();
+    }
     public function getSelfieUrl(){
         return \App\Helpers\FileHelper::url($this->selfie,self::FOLDER);
     }

@@ -57,6 +57,8 @@ class SubAdminController extends Controller
                         'approve'=>auth()->user()->can('admin approve') && $single->getStatus()!= 1 ?routePut('subadmin.aprove',['id'=>encrypt($single->getId())]):'',
                         'reject'=>auth()->user()->can('admin reject') && $single->getStatus()!= 0 ?routePut('subadmin.reject',['id'=>encrypt($single->getId())]):'',
                         'block'=>auth()->user()->can('admin block') && $single->getStatus()!= 2 ?routePut('subadmin.block',['id'=>encrypt($single->getId())]):'',
+                        // 'view' =>route('profile.view', ['id' => $single->id]),
+
 					]))
 				];
 			}

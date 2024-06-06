@@ -94,8 +94,10 @@ class User extends Authenticatable implements JWTSubject
         return [];
     }
 
-    public function getProfileImage(){
-       return \App\Helpers\FileHelper::url($this->profile_image,self::FOLDER);
+    // User.php model
+    public function getProfileImage()
+    {
+        return $this->profile_image ? url('storage/' . $this->profile_image) : null;
     }
 
     public static function getUserIdUsingPincode($pincode){

@@ -29,18 +29,18 @@
                         <thead>
                             <tr>
                                 <th data-data="name">Company Name</th>
-                                <th data-data="owner_first_name">Lead First Name</th>
-                                <th data-data="owner_last_name">Lead Last Name</th>
+                                <th data-data="owner_full_name">Lead Full Name</th>
                                 <th data-data="owner_email">Lead Email</th>
                                 <th data-data="owner_number">Lead Number</th>
-                                <th data-data="pincode">Pincode</th>
+                                {{-- <th data-data="pincode">Pincode</th>
                                 <th data-data="area">Area</th>
                                 <th data-data="city">City</th>
                                 <th data-data="state">State</th>
-                                <th data-data="country">Country</th>
+                                <th data-data="country">Country</th> --}}
                                 <th data-data="ti_status">Status</th>
-                                <th data-data="created_at">Created at</th>
-                                <th data-data="actions" data-sortable="false">Action</th>
+                                <th data-data="user_full_name">Team Full Name</th>
+                                {{-- <th data-data="actions" data-sortable="false">Action</th> --}}
+                                <th data-data="details" data-sortable="false">Details</th>
                             </tr>
                         </thead>
                         <tbody></tbody>

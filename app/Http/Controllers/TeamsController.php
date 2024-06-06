@@ -61,6 +61,8 @@ class TeamsController extends Controller
                         'approve'=>auth()->user()->can('team approve') && $single->getStatus()!= 1  ?routePut('teams.aprove',['id'=>encrypt($single->getId())]):'',
                         'reject'=>auth()->user()->can('team reject')&& $single->getStatus()!= 0 ?routePut('teams.reject',['id'=>encrypt($single->getId())]):'',
                         'block'=>auth()->user()->can('team block') && $single->getStatus()!= 2 ?routePut('teams.block',['id'=>encrypt($single->getId())]):'',
+                        // 'view' =>route('profile.view', ['id' => $single->id]),
+
 					]))
 				];
 			}
@@ -308,108 +310,91 @@ class TeamsController extends Controller
     //     }
     // }
 
-    public function TeamReport(Request $request)
-    {
+    public function TeamReport(Request $request) {
         $Options = [
-            'total' => 'Total Visits  ',
-            'completed' => 'Completed Visits  ',
-            'pending' => 'Pending Visits  ',
+            'total' => 'Total Visits',
+            'completed' => 'Completed Visits',
+            'pending' => 'Pending Visits',
         ];
-        $filter = $request->get('filter', 'total'); // default to showing all visits
-        $search = $request->input('search.value'); // Get the search query from the request
-
-        // Retrieve leads query without executing it
+        $filter = $request->get('filter', 'total');
+        $search = $request->input('search.value');
+    
         $leadsQuery = Leads::with(['business' => function ($query) {
-            $query->select('id', 'owner_first_name','owner_last_name', 'name', 'owner_email');},
-             'user' => function ($query) {
-            $query->select('id', 'first_name', 'last_name', 'email');}
-        ])->orderBy('created_at', 'desc');
-
-
+            $query->select('id', 'owner_first_name', 'owner_last_name', 'name', 'owner_email');
+        }, 'user' => function ($query) {
+            $query->select('id', 'first_name', 'last_name', 'email');
+        }])->orderBy('created_at', 'desc');
+    
         if ($filter == 'completed') {
             $leadsQuery->where('ti_status', 1);
         } elseif ($filter == 'pending') {
-            $leadsQuery->where('ti_status', 0);
+            $leadsQuery->where('ti_status', 2);
         }
-
-        // Apply search filter if search query is provided
-        
+    
         if ($search) {
             $leadsQuery->where(function ($query) use ($search) {
                 $query->whereHas('business', function ($query) use ($search) {
                     $query->where('name', 'like', "%$search%")
-                        ->orWhere('owner_name', 'like', "%$search%");
+                          ->orWhere('owner_first_name', 'like', "%$search%")
+                          ->orWhere('owner_last_name', 'like', "%$search%");
                 })
                 ->orWhereHas('user', function ($query) use ($search) {
-                    $query->where('email', 'like', "%$search%");
+                    $query->where('first_name', 'like', "%$search%")
+                          ->orWhere('last_name', 'like', "%$search%")
+                          ->orWhere('email', 'like', "%$search%");
                 });
-            })->get();
+            });
         }
-
+    
         if ($srch = DataTableHelper::search()) {
             $q = $leadsQuery->where(function ($query) use ($srch) {
-                foreach (['business_name', 'owner_name', 'owner_email','assigned_to','assigned_email','assigned_on','assigned_on'] as $k => $v) {
+                foreach (['business_name', 'owner_name', 'owner_email', 'assigned_to', 'assigned_email', 'assigned_on', 'assigned_on'] as $k => $v) {
                     if (!$k) $query->where($v, 'like', '%' . $srch . '%');
                     else $query->orWhere($v, 'like', '%' . $srch . '%');
                 }
             });
         }
-        
+    
         $count = $leadsQuery->count();
-
+    
         if (DataTableHelper::sortBy() == 'ti_status') {
             $q = $leadsQuery->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-        } 
-        // else {
-        //     $q = $leadsQuery->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
-        // }
-        // $q = $leadsQuery->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
-
-
+        }
+    
         $leads = $leadsQuery->get();
-
+    
         $data = $leads->map(function ($lead) {
-            $status = '';
-            switch ($lead->ti_status) {
-                case 0:
-                    $status = 'Pending';
-                    break;
-                case 1:
-                    $status = 'Completed';
-                    break;
-                case 2:
-                    $status = 'Total';
-                    break;
-                default:
-                    $status = 'Unknown';
-                    break;
-            }
             return [
+                'id' => $lead->id,
                 'business_name' => $lead->business->name ?? '',
-                'owner_name' => $lead->business ? $lead->business->owner_first_name . ' ' . $lead->business->owner_last_name :'No Owner Name',
+                'owner_name' => $lead->business ? $lead->business->owner_first_name . ' ' . $lead->business->owner_last_name : 'No Owner Name',
                 'owner_email' => $lead->business->owner_email ?? '',
                 'assigned_to' => $lead->user ? $lead->user->first_name . ' ' . $lead->user->last_name : 'Not Assigned',
                 'assigned_email' => $lead->user->email ?? '',
-                'Status' => $status,
-                'visit_date'=>$lead->visit_date,
+                'Status' => $lead->leadStatus(),
+                'visit_date' => $lead->visit_date,
                 'created_at' => $lead->created_at->format('Y-m-d'),
                 'assigned_on' => $lead->created_at->format('Y-m-d'),
             ];
         });
-        // dd($data);
-        // Display results in the TeamView blade template
+    
         return view('TeamReport.TeamView', [
-            'title'=>'Teams | Reports',
-            'leads' => $data, // Pass transformed data to view
+            'title' => 'Teams | Reports',
+            'leads' => $data,
             'Options' => $Options,
             'selectedFilter' => $filter,
             'table' => 'tableReport',
             'recordsTotal' => $count,
-			'recordsFiltered' => $count,
-
+            'recordsFiltered' => $count,
+            'search' => $search,
         ]);
     }
-    
-    
+      public function showDetail($id) {
+        
+        $lead = Leads::with(['business', 'user'])->findOrFail($id);
+
+        // Return your detailed view or data
+        return view('TeamReport.DetailView', compact('lead'));
+    }
     
 }

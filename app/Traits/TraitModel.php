@@ -69,15 +69,15 @@ trait TraitModel{
 
     public function leadStatus(){
         if($this->getStatus() == 1){
-            return '<span class="badge badge-success">Done</span>';
+            return '<span class="badge badge-success">Completed</span>';
         }elseif($this->getStatus() == 2){
-            return '<span class="badge badge-warning">Peding</span>';
+            return '<span class="badge badge-warning">Pending</span>';
         } elseif($this->getStatus() == 3) {
             return '<span class="badge badge-info">Hold</span>';
         } elseif($this->getStatus() == 4){
             return '<span class="badge badge-danger">Reject</span>';
         }elseif($this->getStatus() == 5){
-            return '<span class="badge badge-secondary">Assign</span>';
+            return '<span class="badge badge-secondary">Assigned</span>';
         } else {
             return '<span class="badge badge-dark">Not Assign</span>';
         }

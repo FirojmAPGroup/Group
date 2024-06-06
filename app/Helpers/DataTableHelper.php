@@ -76,7 +76,7 @@ class DataTableHelper
         $data []='<a href="javascript:;" onclick="crudBlock(\'' . $args['block'] . '\')" class="mr-4 trust-wave-buton-delete" data-toggle="tooltip" data-placement="top" title="Block"><i class="fa fa-ban"></i> </a>';
     }
     if ($args['view'] ?? '') {
-      $data[] = '<a href="' . $args['view'] . '" title="View" class="btn action btn-info btn-rounded btn-icon"><i class="fa fa-eye"></i></a>';
+      $data[] = '<a href="' . $args['view'] . '" title="View" class="mr-4 trust-wave-buton-approve btn-icon"><i class="fa fa-eye"></i></a>';
     }
     if ($data) {
       return implode('', $data);

@@ -14,10 +14,10 @@ use Symfony\Component\HttpKernel\Profiler\Profile;
 
 class ProfileController extends Controller
 {
-    public function show()
+    public function show($id)
     {
         // Assuming you are using authentication
-        $user = auth()->user();
+        $user = User::find($id);
 
         return view('profile.form', [
             'user' => $user,

@@ -21,7 +21,7 @@
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <select name="business_id" id="business_id" class="select2">
+                                        <select name="business_id" id="business_id" class="select2" >
                                             <option value="" selected>Please select</option>
                                             {!! makeDropdown($leads)  !!}
                                         </select>
@@ -34,8 +34,8 @@
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <select name="user_ids" id="user_ids" class="select2">
-                                            <option value="" selected>Please select</option>
+                                        <select name="user_ids" id="user_ids" class="select2" required>
+                                            <option value="" selected >Please select</option>
                                             {!! makeDropdown($user)  !!}
                                         </select>
                                     </div>
