@@ -13,149 +13,189 @@ use App\Events\SubAdminCreated;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\NewTeamNotifications;
 use App\Notifications\AccountApprovalNotification;
+
 class TeamsController extends Controller
 {
     use \App\Traits\TraitController;
-    
-    public function index(){
-        return view('Teams.index',[
-            'title'=>'Teams',
-            'urlListData'=>routePut('teams.loadList'),'table' => 'tableTeams'
+
+    public function index()
+    {
+        return view('Teams.index', [
+            'title' => 'Teams',
+            'urlListData' => routePut('teams.loadList'), 'table' => 'tableTeams'
         ]);
     }
-    public function loadList(){
+  
+    public function loadList()
+    {
         try {
-			$q = User::whereDoesntHave('roles')
-            ->orWhereHas('roles', function ($query) {
-                $query->where('name', 'user');
+            $q = User::whereDoesntHave('roles')
+                ->orWhereHas('roles', function ($query) {
+                    $query->where('name', 'user');
+                });
+
+            if ($srch = DataTableHelper::search()) {
+                $q = $q->where(function ($query) use ($srch) {
+                    foreach (['email', 'phone_number', 'first_name', 'last_name'] as $k => $v) {
+                        if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+                        else $query->orWhere($v, 'like', '%' . $srch . '%');
+                    }
+                });
+            }
+
+            $count = $q->count();
+
+            if (DataTableHelper::sortBy() == 'ti_status') {
+                $q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
+            } else {
+                $q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
+            }
+
+            $q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
+
+            // Fetch users with their leads count using eager loading
+            $users = $q->withCount('hasLeads')->get();
+
+            $data = [];
+            foreach ($users as $user) {
+                $data[] = [
+                    'first_name' => putNA($user->first_name),
+                    'last_name' => putNA($user->last_name),
+                    'email' => putNA($user->email),
+                    'ti_status' => $user->listStatusBadge(),
+                    'created_at' => putNA($user->showCreated(1)),
+                    'leads_count' => '<a href="' . route('team.leads', ['id' => $user->id]) . '">'. 'Total  ' . $user->has_leads_count . '</a>', // Link to the new route
+                    'actions' => putNA(DataTableHelper::listActions([
+                        'edit' => auth()->user()->can('team edit') ? routePut('teams.edit', ['id' => encrypt($user->id)]) : '',
+                        'delete' => auth()->user()->can('team delete') ? routePut('teams.delete', ['id' => encrypt($user->id)]) : '',
+                        'approve' => auth()->user()->can('team approve') && $user->getStatus() != 1 ? routePut('teams.aprove', ['id' => encrypt($user->id)]) : '',
+                        'reject' => auth()->user()->can('team reject') && $user->getStatus() != 0 ? routePut('teams.reject', ['id' => encrypt($user->id)]) : '',
+                        'block' => auth()->user()->can('team block') && $user->getStatus() != 2 ? routePut('teams.block', ['id' => encrypt($user->id)]) : '',
+                        'view' => route('profile.view', ['id' => $user->id]),
+                    ]))
+                ];
+            }
+
+            return $this->resp(1, '', [
+                'draw' => request('draw'),
+                'recordsTotal' => $count,
+                'recordsFiltered' => $count,
+                'data' => $data
+            ]);
+        } catch (\Throwable $th) {
+            return $this->resp(0, exMessage($th), [], 500);
+        }
+    }
+
+  
+public function showLeads($id, Request $request)
+{
+    try {
+        $user = User::with('hasLeads.business')->findOrFail($id); // Eager load leads and their business
+
+        // Fetch leads with simple search and pagination
+        $query = $user->hasLeads()->with('business');
+
+        // If there's a search term, filter results accordingly
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->whereHas('business', function ($q) use ($search) {
+                $q->where('name', 'LIKE', '%' . $search . '%');
             });
-			if ($srch = DataTableHelper::search()) {
-				$q = $q->where(function ($query) use ($srch) {
-					foreach (['email', 'phone_number', 'first_name','last_name'] as $k => $v) {
-						if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-						else $query->orWhere($v, 'like', '%' . $srch . '%');
-					}
-				});
-			}
-			$count = $q->count();
+        }
 
-			if (DataTableHelper::sortBy() == 'ti_status') {
-				$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-			} else {
-				$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
-			}
-			$q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
+        $leads = $query->get();
 
-			$data = [];
-			foreach ($q->get() as $single) {
-				$data[] = [
-					// 'id' => '<input type="checkbox" class="chk-multi-check" value="' . $single->getId() . '" />',
-					'first_name' => putNA($single->first_name),
-                    'last_name'=>putNA($single->last_name),
-					'email' => putNA($single->email),
-					'ti_status' => $single->listStatusBadge(),
-					'created_at' => putNA($single->showCreated(1)),
-					'actions' => putNA(DataTableHelper::listActions([
-                        'edit' => auth()->user()->can('team edit') ? routePut('teams.edit', ['id' => encrypt($single->getId())]) : '',
-						'delete' => auth()->user()->can('team delete') ? routePut('teams.delete',['id'=>encrypt($single->getId())]) :'',
-                        'approve'=>auth()->user()->can('team approve') && $single->getStatus()!= 1  ?routePut('teams.aprove',['id'=>encrypt($single->getId())]):'',
-                        'reject'=>auth()->user()->can('team reject')&& $single->getStatus()!= 0 ?routePut('teams.reject',['id'=>encrypt($single->getId())]):'',
-                        'block'=>auth()->user()->can('team block') && $single->getStatus()!= 2 ?routePut('teams.block',['id'=>encrypt($single->getId())]):'',
-                        // 'view' =>route('profile.view', ['id' => $single->id]),
-
-					]))
-				];
-			}
-
-			return $this->resp(1, '', [
-				'draw' => request('draw'),
-				'recordsTotal' => $count,
-				'recordsFiltered' => $count,
-				'data' => $data
-			]);
-		} catch (\Throwable $th) {
-			return $this->resp(0, exMessage($th), [], 500);
-		}
+        return view('teams.leads', compact('user', 'leads'));
+    } catch (\Throwable $th) {
+        return redirect()->back()->withErrors(['error' => exMessage($th)]);
     }
-    public function create(){
+}
+
+
+    public function create()
+    {
         $subAdmin = new User();
-        return view('Teams.form',['heading'=>"Create",'title'=>"Create Team Member",'user'=>$subAdmin]);
+        return view('Teams.form', ['heading' => "Create", 'title' => "Create Team Member", 'user' => $subAdmin]);
     }
 
-    public function save(){
+    public function save()
+    {
         // dd(request()->all());
         try {
             $rules = [
-                'first_name'=>'required',
-                'last_name'=>'required',
-                'email'=>'required',
-                'phone'=>'required|digits:10',
-                'admin_title'=>'required',
-                'service_pincode'=>'required|digits:6'
+                'first_name' => 'required',
+                'last_name' => 'required',
+                'email' => 'required',
+                'phone' => 'required|digits:10',
+                'admin_title' => 'required',
+                'service_pincode' => 'required|digits:6'
             ];
-            if(!useId(request()->get('id'))){
+            if (!useId(request()->get('id'))) {
                 $rules = [
-                    'password'=>'required|string|confirmed|min:6'
+                    'password' => 'required|string|confirmed|min:6'
                 ];
             }
             $messages = [
-                'first_name.required'=>"Please Provide First Name",
-                'last_name.required'=>"Please Provide Last Name",
-                'email.required'=>"Please Provide Email",
-                'phone.required'=>"Please provide phone number",
-                'phone.digits'=>"Phone number should be exact :digits",
-                'admin_title.required'=>"Please select Title",
-                'service_pincode.required'=>'Please provide service area pincode',
-                'service_pincode.digits'=>"Service area code should be :digits"
+                'first_name.required' => "Please Provide First Name",
+                'last_name.required' => "Please Provide Last Name",
+                'email.required' => "Please Provide Email",
+                'phone.required' => "Please provide phone number",
+                'phone.digits' => "Phone number should be exact :digits",
+                'admin_title.required' => "Please select Title",
+                'service_pincode.required' => 'Please provide service area pincode',
+                'service_pincode.digits' => "Service area code should be :digits"
             ];
             $validator = validate(request()->all(), $rules, $messages);
-            if($validator){
-                return $this->resp(0,$validator[0],[],500);
+            if ($validator) {
+                return $this->resp(0, $validator[0], [], 500);
             }
-            $status = userLogin()->hasRole('admin') ? 1 :0;
+            $status = userLogin()->hasRole('admin') ? 1 : 0;
             $subadminData = [
-                'first_name'=>request()->get('first_name'),
-                'last_name'=>request()->get('last_name'),
-                'email'=>request()->get('email'),
-                'phone_number'=>request()->get('phone'),
-                'title'=>request()->get('admin_title'),
-                'service_pincode'=>request()->get('service_pincode')
+                'first_name' => request()->get('first_name'),
+                'last_name' => request()->get('last_name'),
+                'email' => request()->get('email'),
+                'phone_number' => request()->get('phone'),
+                'title' => request()->get('admin_title'),
+                'service_pincode' => request()->get('service_pincode')
             ];
-            if(useId(request()->get('id'))){
-                User::where("id",useId(request()->get('id')))->update($subadminData);
-                return $this->resp(1,"Team Member Updated successfully",['url'=>routePut('teams.list')]);
+            if (useId(request()->get('id'))) {
+                User::where("id", useId(request()->get('id')))->update($subadminData);
+                return $this->resp(1, "Team Member Updated successfully", ['url' => routePut('teams.list')]);
             } else {
-                $subadminData['ti_status']=$status;
-                $subadminData['password']=Hash::make(request()->get('password'));
+                $subadminData['ti_status'] = $status;
+                $subadminData['password'] = Hash::make(request()->get('password'));
                 $subadmin = User::create($subadminData);
-                if($subadmin){
-                    Event::dispatch(new SubAdminCreated($subadmin->getId(),request()->get('password')));
-                    return $this->resp(1,"Team Member Created successfully",['url'=>routePut('teams.list')]);
+                if ($subadmin) {
+                    Event::dispatch(new SubAdminCreated($subadmin->getId(), request()->get('password')));
+                    return $this->resp(1, "Team Member Created successfully", ['url' => routePut('teams.list')]);
                 }
             }
         } catch (\Throwable $th) {
             // return $this->resp(0,"something went wrong. try again later",[],500);
-            return $this->resp(0,$th->getMessage(),[],500);
+            return $this->resp(0, $th->getMessage(), [], 500);
         }
     }
 
-    public function edit($id){
+    public function edit($id)
+    {
         try {
-            if(useId($id)){
+            if (useId($id)) {
                 $subAdmin = User::find(useId($id));
-                if($subAdmin){
-                    return view('Teams.form',['heading'=>"Edit",'title'=>"Edit Team Member",'user'=>$subAdmin]);
+                if ($subAdmin) {
+                    return view('Teams.form', ['heading' => "Edit", 'title' => "Edit Team Member", 'user' => $subAdmin]);
                 }
-                return redirect()->route('teams.list')->with('error',"Team Member not found");
+                return redirect()->route('teams.list')->with('error', "Team Member not found");
             } else {
-                return redirect()->route('teams.list')->with('error',"Team Member not found");
+                return redirect()->route('teams.list')->with('error', "Team Member not found");
             }
         } catch (\Throwable $th) {
-            return redirect()->route('teams.list')->with('error',"Team Member not found");
+            return redirect()->route('teams.list')->with('error', "Team Member not found");
         }
     }
 
-    public function delete($id){
+    public function delete($id)
+    {
         if ($single = User::find(useId($id))) {
             $single->delete();
             return $this->resp(1, getMsg('deleted', ['name' => "Team Member"]));
@@ -164,24 +204,25 @@ class TeamsController extends Controller
         }
     }
 
-    public function statusChange($id){
-        if(routeCurrName()=="teams.aprove"){
+    public function statusChange($id)
+    {
+        if (routeCurrName() == "teams.aprove") {
             if ($single = User::find(useId($id))) {
-                $single->ti_status= 1;
+                $single->ti_status = 1;
                 $single->save();
                 // Send notification
 
                 $single->notify(new AccountApprovalNotification([
-                    'user_name' => $single->first_name. ' '. $single->last_name,
+                    'user_name' => $single->first_name . ' ' . $single->last_name,
                     'message' => 'your account is approved '
                 ]));
                 return $this->resp(1, getMsg('approve', ['name' => "Team Member"]));
             } else {
                 return $this->resp(0, getMsg('not_found'));
             }
-        } elseif(routeCurrName()=="teams.reject") {
+        } elseif (routeCurrName() == "teams.reject") {
             if ($single = User::find(useId($id))) {
-                $single->ti_status= 0;
+                $single->ti_status = 0;
                 $single->save();
                 // notifications
                 $single->notify(new AccountApprovalNotification([
@@ -192,9 +233,9 @@ class TeamsController extends Controller
             } else {
                 return $this->resp(0, getMsg('not_found'));
             }
-        } elseif(routeCurrName()=="teams.block"){
+        } elseif (routeCurrName() == "teams.block") {
             if ($single = User::find(useId($id))) {
-                $single->ti_status= 2;
+                $single->ti_status = 2;
                 $single->save();
                 // notification
                 $single->notify(new AccountApprovalNotification([
@@ -207,7 +248,7 @@ class TeamsController extends Controller
             }
         }
     }
- 
+
     //   public function TeamReport(Request $request)
     // {
     //     $Options = [
@@ -229,10 +270,10 @@ class TeamsController extends Controller
     // {
     //     try {
 
-            
+
     //         $filter = $request->get('filter', 'total'); // default to showing all visits
     //         $search = $request->input('search.value'); // Get the search query from the request
-          
+
     //         // Retrieve leads query without executing it
     //         $leadsQuery = Leads::with(['business' => function ($query) {
     //             $query->select('id', 'owner_first_name','owner_last_name', 'name', 'owner_email');
@@ -243,31 +284,31 @@ class TeamsController extends Controller
     //         ]
     //         );
     //         // $leadss=Leads::all();
-    
+
     //         // Apply filter based on the selected option
     //         if ($filter == 'completed') {
     //             $leadsQuery->where('ti_status', 1);
     //         } elseif ($filter == 'pending') {
     //             $leadsQuery->where('ti_status', 0);
     //         }
-    
+
     //         // Apply search filter if search query is provided
     //         if ($srch = DataTableHelper::search()) {
-	// 			$q = $leadsQuery->where(function ($query) use ($srch) {
-	// 				foreach (['email', 'phone_number', 'first_name','last_name'] as $k => $v) {
-	// 					if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-	// 					else $query->orWhere($v, 'like', '%' . $srch . '%');
-	// 				}
-	// 			});
-	// 		}
-    
+    // 			$q = $leadsQuery->where(function ($query) use ($srch) {
+    // 				foreach (['email', 'phone_number', 'first_name','last_name'] as $k => $v) {
+    // 					if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+    // 					else $query->orWhere($v, 'like', '%' . $srch . '%');
+    // 				}
+    // 			});
+    // 		}
+
     //         // Get the count of filtered leads
     //         $count = $leadsQuery->count();
     //         // dd($Options,$leadsQuery);
-    
+
     //         // Retrieve leads data after applying filters and search
     //         $leads = $leadsQuery->get();
-    
+
     //         // Transform leads data
     //         $data = $leads->map(function ($lead) {
     //             $status = '';
@@ -310,7 +351,8 @@ class TeamsController extends Controller
     //     }
     // }
 
-    public function TeamReport(Request $request) {
+    public function TeamReport(Request $request)
+    {
         $Options = [
             'total' => 'Total Visits',
             'completed' => 'Completed Visits',
@@ -318,34 +360,34 @@ class TeamsController extends Controller
         ];
         $filter = $request->get('filter', 'total');
         $search = $request->input('search.value');
-    
+
         $leadsQuery = Leads::with(['business' => function ($query) {
             $query->select('id', 'owner_first_name', 'owner_last_name', 'name', 'owner_email');
         }, 'user' => function ($query) {
             $query->select('id', 'first_name', 'last_name', 'email');
         }])->orderBy('created_at', 'desc');
-    
+
         if ($filter == 'completed') {
             $leadsQuery->where('ti_status', 1);
         } elseif ($filter == 'pending') {
             $leadsQuery->where('ti_status', 2);
         }
-    
+
         if ($search) {
             $leadsQuery->where(function ($query) use ($search) {
                 $query->whereHas('business', function ($query) use ($search) {
                     $query->where('name', 'like', "%$search%")
-                          ->orWhere('owner_first_name', 'like', "%$search%")
-                          ->orWhere('owner_last_name', 'like', "%$search%");
+                        ->orWhere('owner_first_name', 'like', "%$search%")
+                        ->orWhere('owner_last_name', 'like', "%$search%");
                 })
-                ->orWhereHas('user', function ($query) use ($search) {
-                    $query->where('first_name', 'like', "%$search%")
-                          ->orWhere('last_name', 'like', "%$search%")
-                          ->orWhere('email', 'like', "%$search%");
-                });
+                    ->orWhereHas('user', function ($query) use ($search) {
+                        $query->where('first_name', 'like', "%$search%")
+                            ->orWhere('last_name', 'like', "%$search%")
+                            ->orWhere('email', 'like', "%$search%");
+                    });
             });
         }
-    
+
         if ($srch = DataTableHelper::search()) {
             $q = $leadsQuery->where(function ($query) use ($srch) {
                 foreach (['business_name', 'owner_name', 'owner_email', 'assigned_to', 'assigned_email', 'assigned_on', 'assigned_on'] as $k => $v) {
@@ -354,15 +396,15 @@ class TeamsController extends Controller
                 }
             });
         }
-    
+
         $count = $leadsQuery->count();
-    
+
         if (DataTableHelper::sortBy() == 'ti_status') {
             $q = $leadsQuery->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
         }
-    
+
         $leads = $leadsQuery->get();
-    
+
         $data = $leads->map(function ($lead) {
             return [
                 'id' => $lead->id,
@@ -377,7 +419,7 @@ class TeamsController extends Controller
                 'assigned_on' => $lead->created_at->format('Y-m-d'),
             ];
         });
-    
+
         return view('TeamReport.TeamView', [
             'title' => 'Teams | Reports',
             'leads' => $data,
@@ -389,12 +431,12 @@ class TeamsController extends Controller
             'search' => $search,
         ]);
     }
-      public function showDetail($id) {
-        
+    public function showDetail($id)
+    {
+
         $lead = Leads::with(['business', 'user'])->findOrFail($id);
 
         // Return your detailed view or data
         return view('TeamReport.DetailView', compact('lead'));
     }
-    
 }

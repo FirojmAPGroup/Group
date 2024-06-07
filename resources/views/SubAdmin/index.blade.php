@@ -26,6 +26,7 @@
                                 <th data-data="email">Email</th>
                                 <th data-data="ti_status">Status</th>
                                 <th data-data="created_at">Created at</th>
+                                {{-- <th data-data="leads_count">Total Lead's</th> --}}
                                 <th data-data="actions" data-sortable="false">Action</th>
                             </tr>
                         </thead>

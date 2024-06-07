@@ -1,22 +1,27 @@
 @extends('layouts.app')
+
 @push('css')
     <link rel="stylesheet" href="{{ pathAssets('vendor/datatables/css/jquery.dataTables.min.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.css">
 @endpush
-<style>
-  .tb-container input {
-  display: none;
-}
-.tb-container label {
-  margin:0 auto;
-}
 
-</style>
 @section('content')
 <div class="row page-titles trust-wave mx-0">
     <div class="col-sm-6 p-md-0">
         <div class="welcome-text ">
             <h4>{{ $title }}</h4>
+        </div>
+    </div>
+    <div class="col-sm-6 p-md-0 d-flex justify-content-end">
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="teamMemberDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Select Team Member
+            </button>
+            <div class="dropdown-menu" aria-labelledby="teamMemberDropdown">
+                @foreach($teamMembers as $member)
+                <a class="dropdown-item" href="#" data-member-id="{{ $member->id }}">{{ $member->first_name }} {{ $member->last_name }}</a>
+                @endforeach
+            </div>
         </div>
     </div>
 </div> 
@@ -32,14 +37,8 @@
                                 <th data-data="owner_full_name">Lead Full Name</th>
                                 <th data-data="owner_email">Lead Email</th>
                                 <th data-data="owner_number">Lead Number</th>
-                                {{-- <th data-data="pincode">Pincode</th>
-                                <th data-data="area">Area</th>
-                                <th data-data="city">City</th>
-                                <th data-data="state">State</th>
-                                <th data-data="country">Country</th> --}}
                                 <th data-data="ti_status">Status</th>
                                 <th data-data="user_full_name">Team Full Name</th>
-                                {{-- <th data-data="actions" data-sortable="false">Action</th> --}}
                                 <th data-data="details" data-sortable="false">Details</th>
                             </tr>
                         </thead>
@@ -51,15 +50,41 @@
     </div>
 </div>
 @stop
+
 @push('js')
     <script src="{{ pathAssets('vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
-
 @endpush
+
 @push('script')
 <script>
     jQuery(document).ready(function() {
-      dtTable = applyDataTable('#{{$table}}', '{!! $urlListData ?? "" !!}', {});
+        var dtTable;
+        var selectedMemberName = '';
+
+        // Function to reload DataTable with selected team member
+        function reloadDataTable(memberId) {
+            dtTable.ajax.url('{{ $urlListData }}' + '?member_id=' + memberId).load();
+        }
+
+        // Function to update selected member name in the dropdown button
+        function updateSelectedMemberName(memberName) {
+            selectedMemberName = memberName;
+            $('#teamMemberDropdown').html(selectedMemberName);
+        }
+
+        // Initialize DataTable
+        dtTable = applyDataTable('#{{ $table }}', '{{ $urlListData }}', {});
+
+        // Handle team member selection
+        $('.dropdown-item').click(function(e) {
+            e.preventDefault();
+            var memberId = $(this).data('member-id');
+            var memberName = $(this).text();
+            updateSelectedMemberName(memberName);
+            reloadDataTable(memberId);
+        });
     });
-  </script>
+</script>
+
 @endpush

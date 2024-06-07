@@ -10,7 +10,7 @@
         </div>
     </div>
     <div class="col-sm-6 p-md-0 d-flex justify-content-end">
-        <a href="{{ routePut('teams.create') }}" class="btn trust-wave-button-color btn-rounded btn-warning"><span class="mr-2"><i class="fa fa-user-plus"></i></span>Create Team</a>
+        <a href="{{ routePut('teams.create',) }}" class="btn trust-wave-button-color btn-rounded btn-warning"><span class="mr-2"><i class="fa fa-user-plus"></i></span>Create Team</a>
     </div>
 </div>
 <div class="row">
@@ -26,6 +26,7 @@
                                 <th data-data="email">Email</th>
                                 <th data-data="ti_status">Status</th>
                                 <th data-data="created_at">Created at</th>
+                                <th data-data="leads_count">Total Lead's</th>
                                 <th data-data="actions" data-sortable="false">Action</th>
                             </tr>
                         </thead>

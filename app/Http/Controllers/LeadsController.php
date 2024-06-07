@@ -28,78 +28,167 @@ class LeadsController extends Controller
     }
     
 
-    public function todayVisit(Request $request)
-    {
-        try {
-            // Fetch today's date
-            $today = now()->toDateString();
-            $leads = Leads::whereIn('ti_status', [1,2,3,4,5])
-            ->where('visit_date',$today)
-            ->get();
+    // public function todayVisit(Request $request)
+    // {
+    //     try {
+    //         // Fetch today's date
+    //         $today = now()->toDateString();
+            
+    //         $leads = Leads::whereIn('ti_status', [1,2,3,4,5])
+    //         ->where('visit_date',$today)
+    //         ->get();
 
-            // dd($leads);
-          // Apply search criteria
-            if ($srch = DataTableHelper::search()) {
-                $q = $leads->where(function ($query) use ($srch) {
-                    foreach (['name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number', 'pincode', 'city', 'state', 'country', 'area'] as $k => $v) {
-                        if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-                        else $query->orWhere($v, 'like', '%' . $srch . '%');
-                    }
-                });
-            }
+    //         // dd($leads);
+    //       // Apply search criteria
+    //         if ($srch = DataTableHelper::search()) {
+    //             $q = $leads->where(function ($query) use ($srch) {
+    //                 foreach (['name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number', 'pincode', 'city', 'state', 'country', 'area'] as $k => $v) {
+    //                     if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+    //                     else $query->orWhere($v, 'like', '%' . $srch . '%');
+    //                 }
+    //             });
+    //         }
               
-            // Initialize the data array
-            $data = [];
+    //         // Initialize the data array
+    //         $data = [];
     
-            // Iterate over each lead to process and collect the required information
-            foreach ($leads as $lead) {
-                if ($lead->user && $lead->business) {
-                    // Calculate the distance between user and business
-                    $distance = $this->haversineGreatCircleDistance(
-                        $lead->user->latitude,
-                        $lead->user->longitude,
-                        $lead->business->latitude,
-                        $lead->business->longitude
-                    );
+    //         // Iterate over each lead to process and collect the required information
+    //         foreach ($leads as $lead) {
+    //             if ($lead->user && $lead->business) {
+    //                 // Calculate the distance between user and business
+    //                 $distance = $this->haversineGreatCircleDistance(
+    //                     $lead->user->latitude,
+    //                     $lead->user->longitude,
+    //                     $lead->business->latitude,
+    //                     $lead->business->longitude
+    //                 );
 
-                    $data[] = [
-                        'first_name'=>$lead->user->first_name,
-                        'last_name' =>$lead->user->last_name,
-                        'phone_number' => $lead->user->phone_number,
-                        'distance' => round($distance, 2),
-                        'name' => $lead->business->name,
-                        'ti_status' => $lead->leadStatus(),
-                        'lead_first_name' => $lead->business->owner_first_name,
-                        'lead_last_name' => $lead->business->owner_last_name,
-                        'lead_email' => $lead->business->owner_email,
-                        'lead_number' => $lead->business->owner_number,
-                        'details' => '<a href="' . route('teams.detail', ['id' => $lead->id]) . '">View Details</a>'
+    //                 $data[] = [
+    //                     'first_name'=>$lead->user->first_name,
+    //                     'last_name' =>$lead->user->last_name,
+    //                     'phone_number' => $lead->user->phone_number,
+    //                     'distance' => round($distance, 2),
+    //                     'name' => $lead->business->name,
+    //                     'ti_status' => $lead->leadStatus(),
+    //                     'lead_first_name' => $lead->business->owner_first_name,
+    //                     'lead_last_name' => $lead->business->owner_last_name,
+    //                     'lead_email' => $lead->business->owner_email,
+    //                     'lead_number' => $lead->business->owner_number,
+    //                     'details' => '<a href="' . route('teams.detail', ['id' => $lead->id]) . '">View Details</a>'
                         
-                    ];
-                }
-            }
+    //                 ];
+    //             }
+    //         }
     
-            // Sort the data by distance in ascending order
-            usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
-    
-            // Get the count of the data
-            $count = count($data);
-            // dd($data);
-            // Return the JSON response with the collected data
-            return response()->json([
-                'draw' => intval($request->input('draw')),
-                'recordsTotal' => $count,
-                'recordsFiltered' => $count,
-                'data' => $data,
-                'leads' => $leads, // Pass the leads collection
+    //         // Sort the data by distance in ascending order
+    //         usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
+    //         $teamMembers = User::whereDoesntHave('roles')
+    //         ->orWhereHas('roles', function ($query) {
+    //             $query->where('name', 'user');
+    //         })
+    //         ->get();
+    //         // Get the count of the data
+    //         $count = count($data);
+    //         // dd($data);
+    //         // Return the JSON response with the collected data
+    //         return response()->json([
+    //             'draw' => intval($request->input('draw')),
+    //             'recordsTotal' => $count,
+    //             'recordsFiltered' => $count,
+    //             'data' => $data,
+    //             'teamMembers'=>$teamMembers,
+    //             'leads' => $leads, // Pass the leads collection
 
-            ]);
-        } catch (\Throwable $th) {
-            // Return error message if any exception occurs
-            return response()->json(['error' => $th->getMessage()], 500);
+    //         ]);
+        
+            
+    //     } catch (\Throwable $th) {
+    //         // Return error message if any exception occurs
+    //         return response()->json(['error' => $th->getMessage()], 500);
+    //     }
+    // }
+
+    public function todayVisit(Request $request)
+{
+    try {
+        // Fetch today's date
+        $today = now()->toDateString();
+
+        // Fetch the member ID from the request
+        $memberId = $request->input('member_id');
+
+        $leadsQuery = Leads::whereIn('ti_status', [1, 2, 3, 4, 5])
+            ->where('visit_date', $today);
+
+        // Apply search criteria
+        if ($srch = DataTableHelper::search()) {
+            $leadsQuery->where(function ($query) use ($srch) {
+                foreach (['name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number', 'pincode', 'city', 'state', 'country', 'area'] as $k => $v) {
+                    if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+                    else $query->orWhere($v, 'like', '%' . $srch . '%');
+                }
+            });
         }
+
+        // Filter leads by member ID if provided
+        if ($memberId) {
+            $leadsQuery->where('user_id', $memberId);
+        }
+
+        // Get the filtered leads
+        $leads = $leadsQuery->get();
+
+        // Process the leads data
+        $data = [];
+        // Iterate over each lead to process and collect the required information
+        foreach ($leads as $lead) {
+            if ($lead->user && $lead->business) {
+                // Calculate the distance between user and business
+                $distance = $this->haversineGreatCircleDistance(
+                    $lead->user->latitude,
+                    $lead->user->longitude,
+                    $lead->business->latitude,
+                    $lead->business->longitude
+                );
+            
+                $data[] = [
+                    'first_name' => $lead->user->first_name,
+                    'last_name' => $lead->user->last_name,
+                    'phone_number' => $lead->user->phone_number,
+                    'distance' => round($distance, 2),
+                    'name' => $lead->business->name,
+                    'ti_status' => $lead->leadStatus(),
+                    'lead_first_name' => $lead->business->owner_first_name,
+                    'lead_last_name' => $lead->business->owner_last_name,
+                    'lead_email' => $lead->business->owner_email,
+                    'lead_number' => $lead->business->owner_number,
+                    'details' => '<a href="' . route('teams.detail', ['id' => $lead->id]) . '">View Details</a>'
+                ];
+            }
+        }
+
+        // Sort the data by distance in ascending order
+        usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
+
+        // Get the count of the data
+        $count = count($data);
+
+        // Return the JSON response with the collected data
+        return response()->json([
+            'draw' => intval($request->input('draw')),
+            'recordsTotal' => $count,
+            'recordsFiltered' => $count,
+            'data' => $data,
+            'leads' => $leads, // Pass the leads collection
+        ]);
+    } catch (\Throwable $th) {
+        // Return error message if any exception occurs
+        return response()->json(['error' => $th->getMessage()], 500);
     }
-    
+}
+
+
+
     public function view($id){
         $useID = useId($id);
         $heading = "View Details";
@@ -109,6 +198,13 @@ class LeadsController extends Controller
     }
     public function loadList(){
         try {
+
+        $leadsQuery = Leads::with(['business' => function ($query) {
+            $query->select('id', 'owner_first_name', 'owner_last_name', 'name', 'owner_email');
+        }, 'user' => function ($query) {
+            $query->select('id', 'first_name', 'last_name', 'email');
+        }])->get();
+
 			$q = Business::query();
 			if ($srch = DataTableHelper::search()) {
 				$q = $q->where(function ($query) use ($srch) {
@@ -128,25 +224,25 @@ class LeadsController extends Controller
 			$q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
 
 			$data = [];
-			foreach ($q->get() as $single) {
-				$data[] = [
-					// 'id' => '<input type="checkbox" class="chk-multi-check" value="' . $single->getId() . '" />',
-					'name' => putNA($single->name),
-                    'owner_first_name'=>putNA($single->owner_first_name),
-                    'owner_last_name'=>putNA($single->owner_last_name),
-					'owner_email' => putNA($single->owner_email),
-                    'owner_number'=>putNA($single->owner_number),
-                    // 'pincode'=>putNA($single->pincode),
-                    // 'city'=>putNA($single->city),
-                    // 'state'=>putNA($single->state),
-                    // 'country'=>putNA($single->country),
-                    // 'area'=>putNA($single->area),
-                    'id'=>$single->id,
-					'ti_status' => $single->leadStatus(),
+         
+            foreach ($leadsQuery as $lead) {
+                $assignedUser = $lead->user ? $lead->user->first_name : 'N/A'; // Name of the assigned user
+                $businessName = $lead->business ? $lead->business->name : 'N/A'; // Name of the associated business
+
+                $data[] = [
+                    // 'lead_id' => $lead->id,
+                    'name' => $businessName,
+                    'owner_first_name' => $lead->business ? $lead->business->owner_first_name : 'N/A',
+                    'owner_last_name' => $lead->business ? $lead->business->owner_last_name : 'N/A',
+                    'owner_email' => $lead->business ? $lead->business->owner_email : 'N/A',
+
+                    'team'=>$assignedUser,
+                    'id'=>$lead->business->id,
+					'ti_status' => $lead->leadStatus(),
 					// 'created_at' => putNA($single->showCreated(1)),
-                    'details' =>'<a href="' . route('leads.view',['id'=>encrypt($single->getId())]) . '">View Details</a>',
+                    'details' =>'<a href="' . route('leads.view',['id'=>encrypt($lead->getId())]) . '">View Details</a>',
 					'actions' => putNA(DataTableHelper::listActions([
-                        'edit'=>routePut('leads.edit',['id'=>encrypt($single->getId())])
+                        'edit'=>routePut('leads.edit',['id'=>encrypt($lead->business->getId())])
                     ]))
 				];
 			}
@@ -346,25 +442,39 @@ class LeadsController extends Controller
         }
     }
 
-    public function getLeadsByStatus($status){
-            if($status == "pending"){
-                $title = "Pending Visits";
-                return view('dashboard.leads',['title'=>$title,'table'=>'tblLeadStatus','urlListData'=>routePut('leads.getleadList',['status'=>$status])]);
-            } elseif($status == "completed"){
-                $title = "Completed Visits";
-                return view('dashboard.leads',['title'=>$title,'table'=>'tblLeadStatus','urlListData'=>routePut('leads.getleadList',['status'=>$status])]);
-            } elseif($status == "total") {
-                $title = "Total Visits";
-                return view('dashboard.leads',['title'=>$title,'table'=>'tblLeadStatus','urlListData'=>routePut('leads.getleadList',['status'=>$status])]);
-            } else {
-                abort(404);
-            }
-    }
-    // public function loadLeadsByStatus($status){
+    // public function getLeadsByStatus($status){
+    //         if($status == "pending"){
+    //             $title = "Pending Visits";
+    //             return view('dashboard.leads',['title'=>$title,'table'=>'tblLeadStatus','urlListData'=>routePut('leads.getleadList',['status'=>$status])]);
+    //         } elseif($status == "completed"){
+    //             $title = "Completed Visits";
+    //             return view('dashboard.leads',['title'=>$title,'table'=>'tblLeadStatus','urlListData'=>routePut('leads.getleadList',['status'=>$status])]);
+    //         } elseif($status == "total") {
+    //             $title = "Total Visits";
+    //             return view('dashboard.leads',['title'=>$title,'table'=>'tblLeadStatus','urlListData'=>routePut('leads.getleadList',['status'=>$status])]);
+    //         } else {
+    //             abort(404);
+    //         }
+    // }
+  
+    // public function loadLeadsByStatus($status) {
     //     try {
-	// 		$q = Business::query();
-    //         $q = $q->leftJoin('leads','leads.business_id','business.id');
-          
+    //         $q = Business::query();
+    //         $q = $q->leftJoin('leads', 'leads.business_id', '=', 'business.id')
+    //                ->leftJoin('users', 'leads.team_id', '=', 'users.id') // Corrected table alias 'users'
+    //                ->select([
+    //                    'business.name as business_name',
+    //                    'business.owner_first_name',
+    //                    'business.owner_last_name',
+    //                    'business.owner_email',
+    //                    'business.owner_number',
+    //                    'leads.id as lead_id',
+    //                    'leads.ti_status as ti_status',
+    //                    'users.first_name as user_first_name', // Select user details
+    //                    'users.last_name as user_last_name',
+    //                    'users.phone_number as user_phone_number'
+    //                ]);
+    
     //         switch ($status) {
     //             case "pending":
     //                 $q->where('leads.ti_status', 2);
@@ -372,65 +482,103 @@ class LeadsController extends Controller
     //             case "completed":
     //                 $q->where('leads.ti_status', 1);
     //                 break;
+             
     //             case "total":
+    //                 // No additional conditions for total
     //                 break;
     //         }
+    
+    //         if ($srch = DataTableHelper::search()) {
+    //             $q = $q->where(function ($query) use ($srch) {
+    //                 foreach (['business.name', 'business.owner_first_name', 'business.owner_last_name', 'business.owner_email', 'business.owner_number', 'business.pincode', 'business.city', 'business.state', 'business.country', 'business.area'] as $k => $v) {
+    //                     if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+    //                     else $query->orWhere($v, 'like', '%' . $srch . '%');
+    //                 }
+    //             });
+    //         }
+    
+    //         $count = $q->count();
+    
+    //         if (DataTableHelper::sortBy() == 'ti_status') {
+    //             $q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
+    //         } else {
+    //             $q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
+    //         }
+    
+    //         $q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
+    
          
+    //         $teamMembers = User::all();
 
-	// 		if ($srch = DataTableHelper::search()) {
-	// 			$q = $q->where(function ($query) use ($srch) {
-	// 				foreach (['name', 'owner_first_name','owner_last_name', 'owner_email','owner_number','pincode','city','state','country','area'] as $k => $v) {
-	// 					if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-	// 					else $query->orWhere($v, 'like', '%' . $srch . '%');
-	// 				}
-	// 			});
-	// 		}
-	// 		$count = $q->count();
+    //         $data = [];
+    //         foreach ($q->get() as $single) {
+    //             $user_full_name = ($single->user_first_name && $single->user_last_name)
+    //             ? $single->user_first_name . ' ' . $single->user_last_name
+    //             : 'N/A (Please assign a lead to Team)';
+    //             $details_link = $single->lead_id 
+    //             ? '<a href="' . route('teams.detail', ['id' => $single->lead_id]) . '">View Details</a>' 
+    //             : 'N/A';
+    //             $ti_status = $this->mapTiStatus($single->ti_status);
+    //             $data[] = [
+    //                 'name' => putNA($single->business_name),
+    //                 'owner_full_name' => putNA($single->owner_first_name . ' ' . $single->owner_last_name),
 
-	// 		if (DataTableHelper::sortBy() == 'ti_status') {
-	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-	// 		} else {
-	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
-	// 		}
-	// 		$q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
-
-	// 		$data = [];
-	// 		foreach ($q->get() as $single) {
-	// 			$data[] = [
-	// 				// 'id' => '<input type="checkbox" class="chk-multi-check" value="' . $single->getId() . '" />',
-	// 				'name' => putNA($single->name),
-    //                 'owner_first_name'=>putNA($single->owner_first_name),
-    //                 'owner_last_name'=>putNA($single->owner_last_name),
-	// 				'owner_email' => putNA($single->owner_email),
-    //                 'owner_number'=>putNA($single->owner_number),
-    //                 // 'pincode'=>putNA($single->pincode),
-    //                 // 'city'=>putNA($single->city),
-    //                 // 'state'=>putNA($single->state),
-    //                 // 'country'=>putNA($single->country),
-    //                 // 'area'=>putNA($single->area),
-	// 				'ti_status' => $single->leadStatus(),
-	// 				'created_at' => putNA($single->created_at),
-	// 				// 'actions' => putNA(DataTableHelper::listActions([
-    //                 //     'edit'=>routePut('leads.edit',['id'=>encrypt($single->getId())])
-    //                 // ])),
-    //                 'details' => '<a href="' . route('teams.detail', ['id' => $single->id]) . '">View Details</a>'
-	// 			];
-	// 		}
-	// 		return $this->resp(1, '', [
-	// 			'draw' => request('draw'),
-	// 			'recordsTotal' => $count,
-	// 			'recordsFiltered' => $count,
-	// 			'data' => $data
-	// 		]);
-	// 	} catch (\Throwable $th) {
-	// 		return $this->resp(0, exMessage($th), [], 500);
-	// 	}
+    //                 'owner_email' => putNA($single->owner_email),
+    //                 'owner_number' => putNA($single->owner_number),
+    //                 'ti_status' => $ti_status,
+    //                 'user_full_name' =>$user_full_name,
+    //                 'details' => $details_link
+    //             ];
+    //         }
+    //         dd($teamMembers);
+    //         return $this->resp(1, '', [
+    //             'draw' => request('draw'),
+    //             'recordsTotal' => $count,
+    //             'recordsFiltered' => $count,
+    //             'data' => $data,
+    //             'teamMembers'=>$teamMembers
+    //         ]);
+            
+    //     } catch (\Throwable $th) {
+    //         return $this->resp(0, exMessage($th), [], 500);
+    //     }
+     
     // }
+    
+    // Controller code
+    public function getLeadsByStatus($status) {
+        switch ($status) {
+            case "pending":
+                $title = "Pending Visits";
+                break;
+            case "completed":
+                $title = "Completed Visits";
+                break;
+            case "total":
+                $title = "Total Visits";
+                break;
+            default:
+                abort(404);
+        }
+        $teamMembers = User::whereDoesntHave('roles')
+            ->orWhereHas('roles', function ($query) {
+                $query->where('name', 'user');
+            })
+            ->get();
+    
+        return view('dashboard.leads', [
+            'title' => $title,
+            'table' => 'tblLeadStatus',
+            'teamMembers' => $teamMembers,
+            'urlListData' => routePut('leads.getleadList', ['status' => $status])
+        ]);
+    }
+    
     public function loadLeadsByStatus($status) {
         try {
             $q = Business::query();
             $q = $q->leftJoin('leads', 'leads.business_id', '=', 'business.id')
-                   ->leftJoin('users', 'leads.team_id', '=', 'users.id') // Corrected table alias 'users'
+                   ->leftJoin('users', 'leads.team_id', '=', 'users.id')
                    ->select([
                        'business.name as business_name',
                        'business.owner_first_name',
@@ -439,7 +587,7 @@ class LeadsController extends Controller
                        'business.owner_number',
                        'leads.id as lead_id',
                        'leads.ti_status as ti_status',
-                       'users.first_name as user_first_name', // Select user details
+                       'users.first_name as user_first_name',
                        'users.last_name as user_last_name',
                        'users.phone_number as user_phone_number'
                    ]);
@@ -451,23 +599,27 @@ class LeadsController extends Controller
                 case "completed":
                     $q->where('leads.ti_status', 1);
                     break;
-             
-                case "total":
-                    // No additional conditions for total
-                    break;
+                // No additional conditions for "total"
             }
     
+            // Handle search
             if ($srch = DataTableHelper::search()) {
                 $q = $q->where(function ($query) use ($srch) {
-                    foreach (['business.name', 'business.owner_first_name', 'business.owner_last_name', 'business.owner_email', 'business.owner_number', 'business.pincode', 'business.city', 'business.state', 'business.country', 'business.area'] as $k => $v) {
-                        if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-                        else $query->orWhere($v, 'like', '%' . $srch . '%');
+                    foreach (['business.name', 'business.owner_first_name', 'business.owner_last_name', 'business.owner_email', 'business.owner_number', 'business.pincode', 'business.city', 'business.state', 'business.country', 'business.area'] as $v) {
+                        $query->orWhere($v, 'like', '%' . $srch . '%');
                     }
                 });
             }
     
+            // Handle team member filter
+            $memberId = request()->input('member_id');
+            if ($memberId) {
+                $q->where('leads.team_id', $memberId);
+            }
+    
             $count = $q->count();
     
+            // Sorting
             if (DataTableHelper::sortBy() == 'ti_status') {
                 $q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
             } else {
@@ -476,26 +628,25 @@ class LeadsController extends Controller
     
             $q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
     
-         
-
+            $teamMembers = User::whereDoesntHave('roles')
+                ->orWhereHas('roles', function ($query) {
+                    $query->where('name', 'user');
+                })
+                ->get();
+    
             $data = [];
             foreach ($q->get() as $single) {
-                $user_full_name = ($single->user_first_name && $single->user_last_name)
-                ? $single->user_first_name . ' ' . $single->user_last_name
-                : 'N/A (Please assign a lead to Team)';
-                $details_link = $single->lead_id 
-                ? '<a href="' . route('teams.detail', ['id' => $single->lead_id]) . '">View Details</a>' 
-                : 'N/A';
-                $ti_status = $this->mapTiStatus($single->ti_status);
+                $userFullName = $single->user_first_name && $single->user_last_name ? $single->user_first_name . ' ' . $single->user_last_name : 'N/A (Please assign a lead to Team)';
+                $detailsLink = $single->lead_id ? '<a href="' . route('teams.detail', ['id' => $single->lead_id]) . '">View Details</a>' : 'N/A';
+                $tiStatus = $this->mapTiStatus($single->ti_status);
                 $data[] = [
                     'name' => putNA($single->business_name),
                     'owner_full_name' => putNA($single->owner_first_name . ' ' . $single->owner_last_name),
-
                     'owner_email' => putNA($single->owner_email),
                     'owner_number' => putNA($single->owner_number),
-                    'ti_status' => $ti_status,
-                    'user_full_name' =>$user_full_name,
-                    'details' => $details_link
+                    'ti_status' => $tiStatus,
+                    'user_full_name' =>$userFullName,
+                    'details' => $detailsLink
                 ];
             }
     
@@ -503,14 +654,16 @@ class LeadsController extends Controller
                 'draw' => request('draw'),
                 'recordsTotal' => $count,
                 'recordsFiltered' => $count,
-                'data' => $data
+                'data' => $data,
+                'teamMembers' => $teamMembers
             ]);
+    
         } catch (\Throwable $th) {
             return $this->resp(0, exMessage($th), [], 500);
         }
-     
     }
     
+
     public function calculateDistance(Request $request)
     {
         try {

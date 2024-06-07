@@ -51,13 +51,14 @@ class SubAdminController extends Controller
 					'email' => putNA($single->email),
 					'ti_status' => $single->listStatusBadge(),
 					'created_at' => putNA($single->showCreated(1)),
+                    // 'leads_count' => '<a href="' . route('team.leads', ['id' => $q->id]) . '">'. 'Total  ' . $q->hasLeads . '</a>', // Link to the new route
 					'actions' => putNA(DataTableHelper::listActions([
 						'edit' => auth()->user()->can('admin edit') ? routePut('subadmin.edit', ['id' => encrypt($single->getId())]) : '',
 						'delete' => auth()->user()->can('admin delete') ? routePut('subadmin.delete',['id'=>encrypt($single->getId())]) :'',
                         'approve'=>auth()->user()->can('admin approve') && $single->getStatus()!= 1 ?routePut('subadmin.aprove',['id'=>encrypt($single->getId())]):'',
                         'reject'=>auth()->user()->can('admin reject') && $single->getStatus()!= 0 ?routePut('subadmin.reject',['id'=>encrypt($single->getId())]):'',
                         'block'=>auth()->user()->can('admin block') && $single->getStatus()!= 2 ?routePut('subadmin.block',['id'=>encrypt($single->getId())]):'',
-                        // 'view' =>route('profile.view', ['id' => $single->id]),
+                        'view' =>route('profile.view', ['id' => $single->id]),
 
 					]))
 				];

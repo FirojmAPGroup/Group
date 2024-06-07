@@ -32,6 +32,7 @@ class Leads extends Model
     // public static function TotalVisits(){
     //     return self::count();
     // }
+  
     public static function TotalVisits(){
         return business::count();
     }

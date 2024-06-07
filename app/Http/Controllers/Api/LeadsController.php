@@ -228,6 +228,8 @@ class LeadsController extends Controller
                 'lead_email' => $business->owner_email ?? 'N/A',
                 'lead_number' => $business->owner_number ?? 'N/A',
                 'pincode' => $business->pincode ?? 'N/A',
+                'lead_latitude'=>$business->latitude,
+                'lead_longitude'=>$business->longitude,
                 'lead_date' => $leadDate // New field indicating 'today', 'yesterday', 'last_week', or 'other'
             ];
         }
@@ -236,6 +238,7 @@ class LeadsController extends Controller
             'code' => 200,
             'data' => $data,
             'date_filter' => $dateFilter,
+         
             'total_done_leads_count' => $totalDoneLeadsCount, // Total count of all done leads
             'total_pending_leads_count' => $totalPendingLeadsCount, // Total count of all pending leads
             'today_done_leads_count' => $todayDoneLeadsCount, // Count of today's done leads
@@ -577,6 +580,8 @@ class LeadsController extends Controller
                 'lead_email' => $business->owner_email ?? 'N/A',
                 'lead_number' => $business->owner_number ?? 'N/A',
                 'pincode' => $business->pincode ?? 'N/A',
+                'lead_latitude'=>$business->latitude,
+                'lead_longitude'=>$business->longitude,
                 'lead_date' => $leadDate // New field indicating 'today', 'yesterday', 'last_week', or 'other'
             ];
         }
