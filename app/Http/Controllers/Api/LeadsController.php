@@ -238,7 +238,8 @@ class LeadsController extends Controller
             'code' => 200,
             'data' => $data,
             'date_filter' => $dateFilter,
-         
+            'lead_latitude'=>$business->latitude,
+            'lead_longitude'=>$business->longitude,
             'total_done_leads_count' => $totalDoneLeadsCount, // Total count of all done leads
             'total_pending_leads_count' => $totalPendingLeadsCount, // Total count of all pending leads
             'today_done_leads_count' => $todayDoneLeadsCount, // Count of today's done leads
@@ -454,7 +455,6 @@ class LeadsController extends Controller
         $user = Auth::guard('api')->user();
         $userLatitude = $user->latitude;
         $userLongitude = $user->longitude;
-    
         $teamId = $user->id;
     
         $today = Carbon::today();
@@ -552,7 +552,7 @@ class LeadsController extends Controller
         });
     
         $data = [];
-    
+      
         foreach ($leadDistances as $distanceInfo) {
             $lead = $distanceInfo['lead'];
             $business = $lead->hasBusiness;
@@ -589,7 +589,9 @@ class LeadsController extends Controller
         return response()->json([
             'code' => 200,
             'data' => $data,
+           
             'date_filter' => $dateFilter,
+          
             'total_done_leads_count' => $totalDoneLeadsCount, // Total count of all done leads
             'total_pending_leads_count' => $totalPendingLeadsCount, // Total count of all pending leads
             'today_done_leads_count' => $todayDoneLeadsCount, // Count of today's done leads
