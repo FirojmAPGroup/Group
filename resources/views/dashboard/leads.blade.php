@@ -12,18 +12,19 @@
             <h4>{{ $title }}</h4>
         </div>
     </div>
-    <div class="col-sm-6 p-md-0 d-flex justify-content-end">
+    <div class="col p-md-0 d-flex justify-content-end" >
         <div class="dropdown">
             <button class="btn btn-secondary dropdown-toggle" type="button" id="teamMemberDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 Select Team Member
             </button>
-            <div class="dropdown-menu" aria-labelledby="teamMemberDropdown">
+            <div class="dropdown-menu" aria-labelledby="teamMemberDropdown" style="max-height: 200px; overflow-y: auto;">
                 @foreach($teamMembers as $member)
                 <a class="dropdown-item" href="#" data-member-id="{{ $member->id }}">{{ $member->first_name }} {{ $member->last_name }}</a>
                 @endforeach
             </div>
         </div>
     </div>
+    
 </div> 
 <div class="row">
     <div class="col-12">

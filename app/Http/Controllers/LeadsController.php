@@ -15,6 +15,8 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Notifications\NewBusinessNotification;
 use Illuminate\Support\Facades\Notification;
 use Carbon\Carbon;
+use App\Models\Location;
+use Illuminate\Support\Facades\Validator;
 use App\Notifications\NewLeadNotification;
 
 class LeadsController extends Controller
@@ -26,87 +28,7 @@ class LeadsController extends Controller
             'urlListData'=>routePut('leads.loadlist'),'table' => 'tableLeads'
         ]);
     }
-    
-
-    // public function todayVisit(Request $request)
-    // {
-    //     try {
-    //         // Fetch today's date
-    //         $today = now()->toDateString();
-            
-    //         $leads = Leads::whereIn('ti_status', [1,2,3,4,5])
-    //         ->where('visit_date',$today)
-    //         ->get();
-
-    //         // dd($leads);
-    //       // Apply search criteria
-    //         if ($srch = DataTableHelper::search()) {
-    //             $q = $leads->where(function ($query) use ($srch) {
-    //                 foreach (['name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number', 'pincode', 'city', 'state', 'country', 'area'] as $k => $v) {
-    //                     if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-    //                     else $query->orWhere($v, 'like', '%' . $srch . '%');
-    //                 }
-    //             });
-    //         }
-              
-    //         // Initialize the data array
-    //         $data = [];
-    
-    //         // Iterate over each lead to process and collect the required information
-    //         foreach ($leads as $lead) {
-    //             if ($lead->user && $lead->business) {
-    //                 // Calculate the distance between user and business
-    //                 $distance = $this->haversineGreatCircleDistance(
-    //                     $lead->user->latitude,
-    //                     $lead->user->longitude,
-    //                     $lead->business->latitude,
-    //                     $lead->business->longitude
-    //                 );
-
-    //                 $data[] = [
-    //                     'first_name'=>$lead->user->first_name,
-    //                     'last_name' =>$lead->user->last_name,
-    //                     'phone_number' => $lead->user->phone_number,
-    //                     'distance' => round($distance, 2),
-    //                     'name' => $lead->business->name,
-    //                     'ti_status' => $lead->leadStatus(),
-    //                     'lead_first_name' => $lead->business->owner_first_name,
-    //                     'lead_last_name' => $lead->business->owner_last_name,
-    //                     'lead_email' => $lead->business->owner_email,
-    //                     'lead_number' => $lead->business->owner_number,
-    //                     'details' => '<a href="' . route('teams.detail', ['id' => $lead->id]) . '">View Details</a>'
-                        
-    //                 ];
-    //             }
-    //         }
-    
-    //         // Sort the data by distance in ascending order
-    //         usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
-    //         $teamMembers = User::whereDoesntHave('roles')
-    //         ->orWhereHas('roles', function ($query) {
-    //             $query->where('name', 'user');
-    //         })
-    //         ->get();
-    //         // Get the count of the data
-    //         $count = count($data);
-    //         // dd($data);
-    //         // Return the JSON response with the collected data
-    //         return response()->json([
-    //             'draw' => intval($request->input('draw')),
-    //             'recordsTotal' => $count,
-    //             'recordsFiltered' => $count,
-    //             'data' => $data,
-    //             'teamMembers'=>$teamMembers,
-    //             'leads' => $leads, // Pass the leads collection
-
-    //         ]);
-        
-            
-    //     } catch (\Throwable $th) {
-    //         // Return error message if any exception occurs
-    //         return response()->json(['error' => $th->getMessage()], 500);
-    //     }
-    // }
+   
 
     public function todayVisit(Request $request)
 {
@@ -186,8 +108,6 @@ class LeadsController extends Controller
         return response()->json(['error' => $th->getMessage()], 500);
     }
 }
-
-
 
     public function view($id){
         $useID = useId($id);
@@ -370,7 +290,6 @@ class LeadsController extends Controller
             $business->ti_status = 5;
             $business->save();
             // Notify the assigned user
-            // 2.Hey Arpita! A new lead, "Lead Name" has been assigned to you.
              $assigningUser = Auth::user(); // Assuming the current logged-in user is assigning the lead
              $user->notify(new NewLeadNotification([
                 'message' => ' A new lead, ' . $business->owner_first_name .' ' . $business->owner_last_name .' has been assigned to you.',
@@ -382,65 +301,119 @@ class LeadsController extends Controller
         }
     }
 
-    public function bulkupload(){
-        // dd(request()->all());
+    public function bulkupload()
+    {
         $rules = [
-            'file' => 'required|mimes:xlsx,xls'
+            'file' => 'required|mimes:csv,xlsx,xls'
         ];
         $file = request()->file('file');
+    
+        // Validate the file
+        $validator = Validator::make(request()->all(), $rules);
+        if ($validator->fails()) {
+            return $this->resp(0, 'Invalid file format.', [], 400);
+        }
+    
         try {
-                $spreadsheet = IOFactory::load($file->getPathname());
-                $sheetData = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
-
-                // Extract headings from the first row
-                $headings = array_map('trim', array_shift($sheetData));
-                $data = [];
-                foreach ($sheetData as $rowData) {
-                    // Combine headings with data to create associative array
-                    $data[] = array_combine($headings, $rowData);
-
-                    // Assuming YourModel has fields corresponding to the headings
-                    // YourModel::create($data);
-                }
-                $filledData = [];
-                foreach ($data as $key => $value) {
-                    
-                    $filledData= [
-                        'name'=>$value['Unit name'],
-                        'owner_first_name'=>$value['Owner first name'],
-                        'owner_last_name'=>$value['Owner last name'],
-                        'owner_number'=>$value['Contact'],
-                        'owner_email'=>$value['email'],
-                        'pincode'=>$value['Pincode'],
-                        'city'=>$value['City'],
-                        'state'=>$value['State'],
-                        'country'=>$value['Unit name'],
-                        'latitude'=>$value['latitude'],
-                        'longitude'=>$value['longitude'],
-                        'area'=>$value['Area'],
-                        'address'=>$value['Address'],
-                        'created_at'=>\Carbon\Carbon::now(),
-                        'updated_at'=>\Carbon\Carbon::now()
-                    ];
-                    $business = Business::create($filledData);
-                    $userId = User::getUserIdUsingPincode($business->pincode);
-                    if($userId){
-                        $filledLeadData = [
-                            'business_id'=>$business->id,
-                            'team_id'=>$userId,
-                            'visit_date'=>\Carbon\Carbon::today()
-                        ];
-                        $lead = Leads::create($filledLeadData);
-                        $business->ti_status = 5;
-                        $business->save();
+            $spreadsheet = IOFactory::load($file->getPathname());
+            $sheetData = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+    
+            // Extract headings from the first row
+            $headings = array_map('trim', array_shift($sheetData));
+            $data = [];
+    
+            foreach ($sheetData as $rowData) {
+                // Combine headings with data to create associative array
+                $data[] = array_combine($headings, $rowData);
+            }
+    
+            $filledData = [];
+    
+            foreach ($data as $value) {
+                $filledData = [
+                    'name' => $value['Company name'],
+                    'owner_first_name' => $value['Owner first name'],
+                    'owner_last_name' => $value['Owner last name'],
+                    'owner_number' => $value['Contact'],
+                    'owner_email' => $value['email'],
+                    'pincode' => $value['Pincode'],
+                    'city' => $value['City'],
+                    'state' => $value['State'],
+                    'country' => $value['Unit name'],
+                    'latitude' => $value['latitude'],
+                    'longitude' => $value['longitude'],
+                    'area' => $value['Area'],
+                    'address' => $value['Address'],
+                    'created_at' => \Carbon\Carbon::now(),
+                    'updated_at' => \Carbon\Carbon::now()
+                ];
+    
+                // Determine nearby locations and assign automatic values
+                $nearestLocation = $this->findNearestLocation($value['latitude'], $value['longitude']);
+                if ($nearestLocation) {
+                    $filledData['team_id'] = $nearestLocation->team_id;
+                    $filledData['visit_date'] = \Carbon\Carbon::today();
+    
+                    // Assign team member based on the nearest location
+                    $teamMember = $this->assignTeamMember($nearestLocation->latitude, $nearestLocation->longitude);
+                    if ($teamMember) {
+                        $filledData['assigned_team_member_id'] = $teamMember->id;
                     }
-                    
                 }
-            return $this->resp(1,"upload success",$filledData);
+    
+                $business = Business::create($filledData);
+    
+                // Assign user based on pincode
+                $userId = User::getUserIdUsingPincode($business->pincode);
+                if ($userId) {
+                    $filledLeadData = [
+                        'business_id' => $business->id,
+                        'team_id' => $userId,
+                        'visit_date' => \Carbon\Carbon::today()
+                    ];
+                    Leads::create($filledLeadData);
+                    $business->ti_status = 5;
+                    $business->save();
+                }
+            }
+    
+            return $this->resp(1, "Upload successful", $filledData);
         } catch (\Throwable $e) {
             return $this->resp(0, exMessage($e), [], 500);
         }
     }
+    
+    /**
+     * Find the nearest location from the database.
+     */
+    private function findNearestLocation($latitude, $longitude)
+    {
+        $locations = Location::all(); // Assuming you have a Location model that stores team locations
+        $nearestLocation = null;
+        $minDistance = PHP_FLOAT_MAX;
+    
+        foreach ($locations as $location) {
+            $distance = $this->haversineGreatCircleDistance($latitude, $longitude, $location->latitude, $location->longitude);
+            if ($distance < $minDistance) {
+                $minDistance = $distance;
+                $nearestLocation = $location;
+            }
+        }
+    
+        return $nearestLocation;
+    }
+    
+    /**
+     * Assign the nearest team member based on latitude and longitude.
+     */
+    private function assignTeamMember($latitude, $longitude)
+    {
+        return User::where('latitude', $latitude)
+                    ->where('longitude', $longitude)
+                    ->first();
+    }
+    
+    
 
     // public function getLeadsByStatus($status){
     //         if($status == "pending"){

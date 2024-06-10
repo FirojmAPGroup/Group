@@ -108,18 +108,19 @@
             <div class="card-header">
                 <h3>Today's Visit</h3>
             </div>
-            <div class="col p-md-0 d-flex justify-content-end" style="margin-top:-40px;margin-left:-10px"> <!-- Adjusted class for left-side positioning -->
+            <div class="col p-md-0 d-flex justify-content-end" style="margin-top:-40px;margin-left:-10px">
                 <div class="dropdown">
                     <button class="btn btn-secondary dropdown-toggle" type="button" id="teamMemberDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         Select Team Member
                     </button>
-                    <div class="dropdown-menu" aria-labelledby="teamMemberDropdown">
+                    <div class="dropdown-menu" aria-labelledby="teamMemberDropdown" style="max-height: 200px; overflow-y: auto;">
                         @foreach($teamMembers as $member)
                         <a class="dropdown-item" href="#" data-member-id="{{ $member->id }}">{{ $member->first_name }} {{ $member->last_name }}</a>
                         @endforeach
                     </div>
                 </div>
             </div>
+            
             <div class="card-body">
                 <div class="table-responsive">
                     <table id="{{ $table }}" class="display" style="width:100%">
@@ -153,7 +154,7 @@
 @endpush
 
 @push('script')
-<script>
+{{-- <script>
     jQuery(document).ready(function() {
         var dtTable;
 
@@ -271,5 +272,253 @@
     $(document).ready(function() {
         fetchChartData('today'); // Initial load
     });
+</script> --}}
+
+{{-- <script>
+    jQuery(document).ready(function() {
+        var dtTable;
+
+        dtTable = $('#{{ $table }}').DataTable({
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                "url": '{{ route("app.todayVisits") }}',
+                "type": "GET",
+                "data": { member_id: '' }
+            },
+            "paging": true,
+            "lengthChange": true,
+            "searching": true,
+            "ordering": true,
+            "info": true,
+            "autoWidth": true,
+            "responsive": true
+        });
+
+        function reloadDataTable(memberId) {
+            dtTable.ajax.url('{{ route("app.todayVisits") }}' + '?member_id=' + memberId).load();
+        }
+
+        function updateSelectedMemberName(memberName) {
+            $('#teamMemberDropdown').html(memberName);
+        }
+
+        $('.dropdown-item').click(function(e) {
+            e.preventDefault();
+            var memberId = $(this).data('member-id');
+            var memberName = $(this).text();
+            updateSelectedMemberName(memberName);
+            reloadDataTable(memberId);
+        });
+    });
+
+    function fetchChartData(interval) {
+        $.ajax({
+            url: "{{ route('app.dashboard') }}",
+            type: 'GET',
+            data: { interval: interval },
+            success: function(response) {
+                updateChart(response);
+                updateSelectedInterval(interval);
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
+    }
+
+    function updateChart(data) {
+        var barChart = {
+            labels: data.labels,
+            series: [
+                data.totalVisits,
+                data.completedVisits,
+                data.pendingVisits,
+                data.unassignedVisits
+            ]
+        };
+
+        var barOptions = {
+            seriesBarDistance: 10
+        };
+
+        var barResponsiveOptions = [
+            ['screen and (max-width: 640px)', {
+                seriesBarDistance: 5,
+                axisX: {
+                    labelInterpolationFnc: function(value) {
+                        return value.split(' ')[0];
+                    }
+                }
+            }]
+        ];
+
+        new Chartist.Bar('.ct-bar-chart', barChart, barOptions, barResponsiveOptions);
+
+        var legend = document.getElementById('chartLegend');
+        legend.innerHTML = '';
+        var legendItems = ['Total Visits', 'Completed Visits', 'Pending Visits', 'Unassigned Visits'];
+        var colors = ['#3366CC', '#DC3912', '#FF9900', '#109618'];
+        legendItems.forEach(function(item, index) {
+            var div = document.createElement('div');
+            div.innerHTML = `<span class="legend-marker" style="background-color: ${colors[index]}"></span> <span class="legend-text">${item}</span>`;
+            legend.appendChild(div);
+        });
+    }
+
+    function updateSelectedInterval(interval) {
+        var intervalText = '';
+        switch (interval) {
+            case 'today':
+                intervalText = 'Today';
+                break;
+            case 'week':
+                intervalText = 'This Week';
+                break;
+            case 'month':
+                intervalText = 'This Month';
+                break;
+            case 'all':
+                intervalText = 'All Data';
+                break;
+        }
+        document.getElementById('selectedInterval').innerText = `Selected Interval: ${intervalText}`;
+    }
+
+    $(document).ready(function() {
+        fetchChartData('today');
+    });
+</script> --}}
+<script>
+    $(document).ready(function() {
+        var dtTable;
+
+        // Initialize DataTable
+        dtTable = $('#{{ $table }}').DataTable({
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                "url": '{{ route("app.todayVisits") }}',
+                "type": "GET",
+                "data": { member_id: '' }
+            },
+            "paging": true,
+            "lengthChange": true,
+            "searching": true,
+            "ordering": true,
+            "info": true,
+            "autoWidth": true,
+            "responsive": true
+        });
+
+        // Function to reload DataTable with selected team member
+        function reloadDataTable(memberId) {
+            dtTable.ajax.url('{{ route("app.todayVisits") }}' + '?member_id=' + memberId).load();
+        }
+
+        // Function to update selected member name in the dropdown button
+        function updateSelectedMemberName(memberName) {
+            $('#teamMemberDropdown').html(memberName);
+        }
+
+        // Handle team member selection
+        $('.dropdown-item').click(function(e) {
+            e.preventDefault();
+            var memberId = $(this).data('member-id');
+            var memberName = $(this).text();
+            updateSelectedMemberName(memberName);
+            reloadDataTable(memberId);
+        });
+
+        // Initial load with today's data
+        fetchChartData('today');
+    });
+
+    function fetchChartData(interval) {
+        $.ajax({
+            url: "{{ route('app.dashboard') }}",
+            type: 'GET',
+            data: { interval: interval },
+            success: function(response) {
+                updateChart(response);
+                updateSelectedInterval(interval);
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
+    }
+
+    function updateChart(data) {
+        var barChart = {
+            labels: data.labels,
+            series: [
+                data.totalVisits,
+                data.completedVisits,
+                data.pendingVisits,
+                data.unassignedVisits
+            ]
+        };
+
+        var barOptions = {
+            seriesBarDistance: 10
+        };
+
+        var barResponsiveOptions = [
+            ['screen and (max-width: 640px)', {
+                seriesBarDistance: 5,
+                axisX: {
+                    labelInterpolationFnc: function(value) {
+                        return value.split(' ')[0];
+                    }
+                }
+            }]
+        ];
+
+        new Chartist.Bar('.ct-bar-chart', barChart, barOptions, barResponsiveOptions);
+
+        updateLegend();
+    }
+
+    function updateLegend() {
+        var legend = document.getElementById('chartLegend');
+        legend.innerHTML = ''; // Clear previous legend
+
+        var legendItems = [
+            { name: 'Total Visits', color: '#3b5998' },
+            { name: 'Completed Visits', color: '#1da1f2' },
+            { name: 'Pending Visits', color: '#ff0000' },
+            { name: 'Unassigned Visits', color: '#109618' }
+        ];
+
+        legendItems.forEach(function(item) {
+            var div = document.createElement('div');
+            div.innerHTML = `
+                <span class="legend-marker" style="background-color: ${item.color}; display: inline-block; width: 12px; height: 12px; margin-right: 5px;"></span>
+                <span class="legend-text">${item.name}</span>
+            `;
+            legend.appendChild(div);
+        });
+    }
+
+    function updateSelectedInterval(interval) {
+        var intervalText = '';
+        switch (interval) {
+            case 'today':
+                intervalText = 'Today';
+                break;
+            case 'week':
+                intervalText = 'This Week';
+                break;
+            case 'month':
+                intervalText = 'This Month';
+                break;
+            case 'all':
+                intervalText = 'All Data';
+                break;
+        }
+        document.getElementById('selectedInterval').innerText = `Selected Interval: ${intervalText}`;
+    }
 </script>
+
 @endpush
