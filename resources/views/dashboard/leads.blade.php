@@ -24,6 +24,12 @@
                 @endforeach
 
             </div>
+              <!-- Export Form -->
+            <form id="exportForm" method="GET" action="{{ route('export.leads') }}" class="d-inline">
+                <input type="hidden" name="status" value="{{ request('status') }}">
+                <input type="hidden" name="member_id" id="exportMemberId" value="">
+                <button type="submit" class="btn btn-primary">Export to Excel</button>
+            </form>
         </div>
     </div>
     
@@ -38,7 +44,6 @@
                             <tr>
                                 <th data-data="name">Company Name</th>
                                 <th data-data="owner_full_name"> Full Name</th>
-                                {{-- <th data-data="owner_email"> Email</th> --}}
                                 <th data-data="owner_number"> Number</th>
                                 <th data-data="ti_status"></th>
                                 <th data-data="user_full_name"> Full Name</th>

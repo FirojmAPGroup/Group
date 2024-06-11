@@ -447,135 +447,84 @@ class LeadsController extends Controller
 
     // }
   
+
     public function leadReport()
     {
-    try {
-        // Get the 'status' parameter from the request
-        $status = request()->get('status');
-
-        // Determine which statuses to highlight based on the 'status' parameter
-        // Highlight: 1 for completed, 0 and 2 for pending
-        $highlightStatuses = ($status == "completed") ? [1] : (($status == "pending") ? [0, 2] : [0, 1, 2]);
-
-        // Calculate the start and end dates for each week
-        $currentWeekStart = Carbon::now()->startOfWeek();
-        $currentWeekEnd = Carbon::now();
-
-        $lastWeek1Start = $currentWeekStart->copy()->subWeek();
-        $lastWeek1End = $currentWeekStart->copy()->subSecond();
-
-        $lastWeek2Start = $lastWeek1Start->copy()->subWeek();
-        $lastWeek2End = $lastWeek1Start->copy()->subSecond();
-
-        $lastWeek3Start = $lastWeek2Start->copy()->subWeek();
-        $lastWeek3End = $lastWeek2Start->copy()->subSecond();
-
-        // Fetch records for each week
-        $records = Leads::selectRaw('DATE(updated_at) as date, ti_status, COUNT(*) as count')
-            ->whereBetween('updated_at', [$lastWeek3Start, $currentWeekEnd])
-            ->groupBy('date', 'ti_status')
-            ->get();
-
-        // Helper function to get counts for a specific week
-        $getCountsForWeek = function ($start, $end) use ($records) {
-            $dateRange = collect(Carbon::parse($start)->daysUntil($end)->toArray());
-            return $dateRange->map(function ($date) use ($records) {
-                $pendingCount = $records->where('date', $date->toDateString())->whereIn('ti_status', [2])->sum('count');
-                $completedCount = $records->where('date', $date->toDateString())->where('ti_status', 1)->sum('count');
-                return [
-                    'date' => $date->toDateString(),
-                    'day' => $date->format('l'), // Get the day of the week
-                    'pending_count' => $pendingCount,
-                    'completed_count' => $completedCount,
-                ];
-            });
-        };
-
-        // Get counts for each week
-        $data = [
-            'last_week_3' => $getCountsForWeek($lastWeek3Start, $lastWeek3End),
-            'last_week_2' => $getCountsForWeek($lastWeek2Start, $lastWeek2End),
-            'last_week_1' => $getCountsForWeek($lastWeek1Start, $lastWeek1End),
-            'current_week' => $getCountsForWeek($currentWeekStart, $currentWeekEnd),
-        ];
-
-        return response()->json([
-            'code' => 200,
-            'message' => 'Chart Data found successfully',
-            'data' => $data,
-            'highlighted_status' => $status,
-        ]);
-    } catch (\Throwable $th) {
-        // Handle any exceptions and return the error response
-        return response()->json([
-            'code' => $th->getCode(),
-            'message' => $th->getMessage(),
-            'data' => []
-        ]);
-    }
+        try {
+            $user = User::find(Auth::guard('api')->user()->id);
+    
+            // Check if status parameter is provided
+            $statusProvided = request()->has('status');
+            $status = request()->get('status');
+    
+            // Calculate the start and end dates for each week
+            $currentWeekStart = Carbon::now()->startOfWeek();
+            $currentWeekEnd = Carbon::now();
+    
+            $lastWeek1Start = $currentWeekStart->copy()->subWeek();
+            $lastWeek1End = $currentWeekStart->copy()->subSecond();
+    
+            $lastWeek2Start = $lastWeek1Start->copy()->subWeek();
+            $lastWeek2End = $lastWeek1Start->copy()->subSecond();
+    
+            $lastWeek3Start = $lastWeek2Start->copy()->subWeek();
+            $lastWeek3End = $lastWeek2Start->copy()->subSecond();
+    
+            // Build the query based on status and user
+            $query = Leads::selectRaw('DATE(created_at) as date')
+                ->selectRaw('SUM(CASE WHEN ti_status = 2 THEN 1 ELSE 0 END) AS pending_count')
+                ->selectRaw('SUM(CASE WHEN ti_status = 1 THEN 1 ELSE 0 END) AS completed_count')
+                ->whereBetween('updated_at', [$lastWeek3Start, $currentWeekEnd])
+                ->where('team_id', $user->id) // Add condition for logged-in user
+                ->groupBy('date'); // Group by date
+    
+            // If status is provided, filter by status
+            if ($statusProvided) {
+                if ($status == "pending") {
+                    $query->where('ti_status', 2);
+                } elseif ($status == "completed") {
+                    $query->where('ti_status', 1);
+                }
+            }
+    
+            $records = $query->get();
+    
+            // Helper function to get counts for a specific week
+            $getCountsForWeek = function ($start, $end) use ($records) {
+                $dateRange = collect(Carbon::parse($start)->daysUntil($end)->toArray());
+                return $dateRange->map(function ($date) use ($records) {
+                    $record = $records->firstWhere('date', $date->toDateString());
+                    return [
+                        'date' => $date->toDateString(),
+                        'day' => $date->format('l'), // Get the day of the week
+                        'pending_count' => $record ? $record->pending_count : 0,
+                        'completed_count' => $record ? $record->completed_count : 0,
+                    ];
+                });
+            };
+    
+            // Get counts for each week
+            $data = [
+                'last_week_3' => $getCountsForWeek($lastWeek3Start, $lastWeek3End),
+                'last_week_2' => $getCountsForWeek($lastWeek2Start, $lastWeek2End),
+                'last_week_1' => $getCountsForWeek($lastWeek1Start, $lastWeek1End),
+                'current_week' => $getCountsForWeek($currentWeekStart, $currentWeekEnd),
+            ];
+    
+            return response()->json([
+                'code' => 200,
+                'message' => 'Chart Data found successfully',
+                'data' => $data
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'code' => $th->getCode(),
+                'message' => $th->getMessage(),
+                'data' => []
+            ]);
+        }
     }
     
-    // public function leadReport()
-    // {
-    //     try {
-    //         $status = request()->has('status') && request()->get('status') == "completed" ? 1 : 0;
-
-    //         // Calculate the start and end dates for each week
-    //         $currentWeekStart = Carbon::now()->startOfWeek();
-    //         $currentWeekEnd = Carbon::now();
-
-    //         $lastWeek1Start = $currentWeekStart->copy()->subWeek();
-    //         $lastWeek1End = $currentWeekStart->copy()->subSecond();
-
-    //         $lastWeek2Start = $lastWeek1Start->copy()->subWeek();
-    //         $lastWeek2End = $lastWeek1Start->copy()->subSecond();
-
-    //         $lastWeek3Start = $lastWeek2Start->copy()->subWeek();
-    //         $lastWeek3End = $lastWeek2Start->copy()->subSecond();
-
-    //         // Fetch records for each week
-    //         $records = Leads::selectRaw('DATE(updated_at) as date, COUNT(*) as count')
-    //             ->whereBetween('updated_at', [$lastWeek3Start, $currentWeekEnd])
-    //             ->where('ti_status', $status)
-    //             ->groupBy('date')
-    //             ->get();
-
-    //         // Helper function to get counts for a specific week
-    //         $getCountsForWeek = function ($start, $end) use ($records) {
-    //             $dateRange = collect(Carbon::parse($start)->daysUntil($end)->toArray());
-    //             return $dateRange->map(function ($date) use ($records) {
-    //                 $record = $records->firstWhere('date', $date->toDateString());
-    //                 return [
-    //                     'date' => $date->toDateString(),
-    //                     'day' => $date->format('l'), // Get the day of the week
-    //                     'count' => $record ? $record->count : 0,
-    //                 ];
-    //             });
-    //         };
-
-    //         // Get counts for each week
-    //         $data = [
-    //             'last_week_3' => $getCountsForWeek($lastWeek3Start, $lastWeek3End),
-    //             'last_week_2' => $getCountsForWeek($lastWeek2Start, $lastWeek2End),
-    //             'last_week_1' => $getCountsForWeek($lastWeek1Start, $lastWeek1End),
-    //             'current_week' => $getCountsForWeek($currentWeekStart, $currentWeekEnd),
-    //         ];
-
-    //         return response()->json([
-    //             'code' => 200,
-    //             'message' => 'Chart Data found successfully',
-    //             'data' => $data
-    //         ]);
-    //     } catch (\Throwable $th) {
-    //         return response()->json([
-    //             'code' => $th->getCode(),
-    //             'message' => $th->getMessage(),
-    //             'data' => []
-    //         ]);
-    //     }
-    // }
-
-
     public function createLead()
     {
         try {
@@ -643,151 +592,6 @@ class LeadsController extends Controller
         }
     }
 
-    // public function updateLead($id){
-    //     try {
-    //         $validator = Validator::make(request()->all(),[
-    //             'remarks'=>'|max:100',
-    //             'selfie'=>'required|mimes:png,jpg',
-    //             'latitude'=>'required',
-    //             'longitude'=>'required'
-    //         ]);
-    //         if($validator->fails()){
-    //             return response()->json([
-    //                 'code'=>401,
-    //                 'data'=>[],
-    //                 'message'=>$validator->errors()->first()
-    //             ],401);
-    //         }
-    //         $lead = Leads::find($id);
-    //         if($lead){
-    //             $lead->remark = request()->get('remarks');
-    //             $lead->putFile('selfie',request()->file('selfie'),'');
-    //             $lead->latitude = request()->get('latitude');
-    //             $lead->longitude = request()->get('longitude');
-    //             $lead->ti_status = request()->get('status');
-    //             $lead->save();
-    //             $leadData= $lead->toArray();
-    //             $leadData['selfie']=$lead->getSelfieUrl();
-    //             $leadData['hasBusiness']= $lead->getBusiness();
-
-
-    //             // notifications
-    //             $message = $lead->business->name .' Lead  successfully';
-    //             $data = [
-    //               'message' =>$message,
-    //               'user_name' =>$lead->user->first_name. ' ' .$lead->user->last_name . ' Has compleated' ,  // Ensure there's a space between first name and last name
-    //           ];
-    //           $notification = new NewLeadNotification($data);
-    //           $users = User::all(); // Assuming you want to notify all users
-    //           Notification::send($users, $notification);
-    //         //   dd($leadData);
-    //             return response()->json([
-    //                 'code'=>200,
-    //                 'data'=>$leadData,
-    //                 'message'=>"Lead updated successfuly"
-    //             ],200);
-    //         } else {
-    //             return response()->json([
-    //                 'code'=>404,
-    //                 'data'=>[],
-    //                 'message'=>"Lead Not found"
-    //             ],404);
-    //         }
-    //     } catch (\Throwable $th) {
-    //         return response()->json([
-    //             'code'=>$th->getCode(),
-    //             'data'=>[],
-    //             'message'=>$th->getMessage()
-    //         ],500);
-    //     }
-    // }
-
-    //  public function updateLead($id){
-    //     try {
-    //         $validator = Validator::make(request()->all(),[
-    //             'remarks'=>'|max:100',
-    //             'selfie'=>'required|mimes:png,jpg',
-    //             'latitude'=>'required',
-    //             'longitude'=>'required',
-    //             // lead 
-    //             'name'=>'required',
-    //             'owner_first_name'=>'required',
-    //             'owner_last_name'=>'required',
-    //             'owner_number'=>'required|digits:10',
-    //             'owner_email'=>'required|email',
-    //             'country'=>'required',
-    //             'state'=>'required',
-    //             'city'=>'required',
-    //             'area'=>'required',
-    //             'pincode'=>'required|digits:6',
-    //         ]);
-    //         if($validator->fails()){
-    //             return response()->json([
-    //                 'code'=>401,
-    //                 'data'=>[],
-    //                 'message'=>$validator->errors()->first()
-    //             ],401);
-    //         }
-    //         $lead = Leads::find($id);
-    //         $business = Business::find($id);
-    //         if($lead){
-    //             $business->name = request()->get('name');
-    //             $business->owner_first_name = request()->get('owner_first_name');
-    //             $business->owner_last_name = request()->get('owner_last_name');
-    //             $business->owner_email = request()->get('owner_email');
-    //             $business->owner_number = request()->get('owner_number');
-    //             $business->country = request()->get('country');
-    //             $business->state = request()->get('state');
-    //             $business->city = request()->get('city');
-    //             $business->area = request()->get('area');
-    //             $business->pincode = request()->get('pincode');
-
-    //             $lead->remark = request()->get('remarks');
-    //             $lead->putFile('selfie',request()->file('selfie'),'');
-    //             $lead->latitude = request()->get('latitude');
-    //             $lead->longitude = request()->get('longitude');
-
-    //             $lead->ti_status = request()->get('status');
-    //             $lead->save();
-    //             $business->save();
-    //             $leadData= $lead->toArray();
-    //             $leadData['selfie']=$lead->getSelfieUrl();
-    //             // $leadData['hasBusiness']= $lead->getBusiness();
-
-
-    //             // notifications
-    //             $message = $lead->business->name .' Lead  successfully';
-    //             $data = [
-    //               'message' =>$message,
-    //               'user_name' =>$lead->user->first_name. ' ' .$lead->user->last_name . ' Has compleated' ,  // Ensure there's a space between first name and last name
-    //           ];  
-    //             $lead->user->notify(new NewLeadNotification(
-    //                 [
-    //                         'message' => $message,
-    //                         'user_name' => $data,
-    //                 ]
-    //             ));
-
-    //             return response()->json([
-    //                 'code'=>200,
-    //                 'data'=>$leadData,$business,
-    //                 'message'=>"Lead updated successfuly"
-    //             ],200);
-    //         } else {
-    //             return response()->json([
-    //                 'code'=>404,
-    //                 'data'=>[],
-    //                 'message'=>"Lead Not found"
-    //             ],404);
-    //         }
-    //     } catch (\Throwable $th) {
-    //         return response()->json([
-    //             'code'=>$th->getCode(),
-    //             'data'=>[],
-    //             'message'=>$th->getMessage()
-    //         ],500);
-    //     }
-    // }
     public function updateLead($id)
     {
         try {

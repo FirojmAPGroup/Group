@@ -64,7 +64,7 @@ class TeamsController extends Controller
                     'email' => putNA($user->email),
                     'ti_status' => $user->listStatusBadge(),
                     'created_at' => putNA($user->showCreated(1)),
-                    'leads_count' => '<a href="' . route('team.leads', ['id' => $user->id]) . '">'. 'Total  ' . $user->has_leads_count . '</a>', // Link to the new route
+                    'leads_count' => '<a href="' . route('team.leads', ['id' => $user->id]) . '">' . $user->has_leads_count . '</a>',
                     'actions' => putNA(DataTableHelper::listActions([
                         'edit' => auth()->user()->can('team edit') ? routePut('teams.edit', ['id' => encrypt($user->id)]) : '',
                         'delete' => auth()->user()->can('team delete') ? routePut('teams.delete', ['id' => encrypt($user->id)]) : '',

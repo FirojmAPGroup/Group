@@ -42,9 +42,30 @@
     <script src="{{ pathAssets('vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
 @endpush
 @push('script')
-<script>
+{{-- <script>
     jQuery(document).ready(function() {
       dtTable = applyDataTable('#{{$table}}', '{!! $urlListData ?? "" !!}', {});
     });
+  </script> --}}
+  <script>
+      jQuery(document).ready(function() {
+          dtTable = applyDataTable('#{{$table}}', '{!! $urlListData ?? "" !!}', {
+              columns: [
+                  { data: 'first_name' },
+                  { data: 'last_name' },
+                  { data: 'email' },
+                  { data: 'ti_status' },
+                  { data: 'created_at' },
+                  {
+                      data: 'leads_count',
+                      render: function(data, type, row, meta) {
+                          return data;
+                      }
+                  },
+                  { data: 'actions', orderable: false }
+              ]
+          });
+      });
   </script>
+  
 @endpush

@@ -16,6 +16,8 @@ use App\Notifications\NewBusinessNotification;
 use Illuminate\Support\Facades\Notification;
 use Carbon\Carbon;
 use App\Models\Location;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\Validator;
 use App\Notifications\NewLeadNotification;
 
@@ -194,15 +196,7 @@ class LeadsController extends Controller
             // Count total records
             $count = $q->count();
     
-            // Apply sorting
-            $sortBy = DataTableHelper::sortBy();
-            $sortDir = DataTableHelper::sortDir();
-            if ($sortBy == 'ti_status') {
-                $q->orderBy($sortBy, $sortDir == 'asc' ? 'desc' : 'asc');
-            } else {
-                $q->orderBy($sortBy, $sortDir);
-            }
-    
+            
             // Apply pagination
             $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
     
@@ -450,7 +444,6 @@ class LeadsController extends Controller
             ->first();
     }
     
-    
     /**
      * Assign the nearest team member based on latitude and longitude.
      */
@@ -595,7 +588,7 @@ class LeadsController extends Controller
         ]);
     }
     
-    public function loadLeadsByStatus($status) {
+    public function loadLeadsByStatus($status, $export = false) {
         try {
             $q = Business::query();
             $q = $q->leftJoin('leads', 'leads.business_id', '=', 'business.id')
@@ -639,14 +632,6 @@ class LeadsController extends Controller
             }
     
             $count = $q->count();
-    
-            // Sorting
-            if (DataTableHelper::sortBy() == 'ti_status') {
-                $q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-            } else {
-                $q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
-            }
-    
             $q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
     
             $teamMembers = User::whereDoesntHave('roles')
@@ -663,7 +648,6 @@ class LeadsController extends Controller
                 $data[] = [
                     'name' => putNA($single->business_name),
                     'owner_full_name' => putNA($single->owner_first_name . ' ' . $single->owner_last_name),
-                    // 'owner_email' => putNA($single->owner_email),
                     'owner_number' => putNA($single->owner_number),
                     'ti_status' => $tiStatus,
                     'user_full_name' =>$userFullName,
@@ -671,6 +655,10 @@ class LeadsController extends Controller
                 ];
             }
     
+            if ($export) {
+                return $this->exportToExcel($data);
+            }
+
             return $this->resp(1, '', [
                 'draw' => request('draw'),
                 'recordsTotal' => $count,
@@ -683,9 +671,50 @@ class LeadsController extends Controller
             return $this->resp(0, exMessage($th), [], 500);
         }
     }
+    public function exportLeads(Request $request) {
+        $status = $request->input('status');
+        $memberId = $request->input('member_id');
     
-
-    public function calculateDistance(Request $request)
+        return $this->loadLeadsByStatus($status, true, $memberId);
+    }
+    protected function exportToExcel($data) {
+        if (empty($data)) {
+            return response()->json(['message' => 'No data available to export.'], 400);
+        }
+    
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+    
+        // Set header
+        $headers = ['Business Name', 'Owner Full Name', 'Owner Number', 'TI Status', 'User Full Name', 'Details'];
+        $sheet->fromArray($headers, NULL, 'A1');
+    
+        // Fill data
+        $sheet->fromArray($data, NULL, 'A2');
+    
+        // Create the writer
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'leads_export_' . date('YmdHis') . '.xlsx';
+        $filePath = storage_path('exports/' . $filename);
+    
+        // Ensure the directory exists
+        $directory = dirname($filePath);
+        if (!file_exists($directory)) {
+            mkdir($directory, 0775, true);
+        }
+    
+        // Save the file
+        $writer->save($filePath);
+    
+        // Return the file path to download
+        return response()->download($filePath)->deleteFileAfterSend(true);
+    }
+    
+        
+    
+    
+    
+        public function calculateDistance(Request $request)
     { 
         try {
 			$q = Business::query();

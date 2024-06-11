@@ -31,11 +31,13 @@
                 <a href="{{ routePut('teams.view') }}">
                     <i class="fa fa-clipboard" style="font-size:14px">      
                     </i> 
-                    Report
+                    <span class="nav-text">Report</span>
+                    
                 </a>
             </li>
             <li><a class="has-arrow" href="javascript:void()" aria-expanded="false"><i
-                        class="mdi mdi-book-open-variant"></i><span class="nav-text">Pages</span></a>
+                        class="mdi mdi-book-open-variant"></i>
+                        <span class="nav-text">Pages</span></a>
                 <ul aria-expanded="false">
                     <li><a href="{{ routePut('pages.about-us') }}">About Us</a></li>
                     <li><a href="{{ routePut('pages.contact-us') }}">Contact Us</a></li>

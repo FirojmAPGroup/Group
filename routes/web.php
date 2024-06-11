@@ -87,7 +87,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
             Route::post('/bulk-upload','LeadsController@bulkupload')->name("leads.bulkUpload");
             Route::get('/leads/{status}','LeadsController@getLeadsByStatus')->name("leads.getlead");
             Route::post('/leads/{status}','LeadsController@loadLeadsByStatus')->name("leads.getleadList");
-        
+            Route::get('/export/leads', 'LeadsController@exportLeads')->name('export.leads');
             // notifications
             Route::get('/notifications', ('NotificationController@showNotifications'))->middleware('auth');
             Route::post('/notifications/mark-as-read/{id}', ('NotificationController@markAsRead'))->middleware('auth');
