@@ -351,60 +351,159 @@ public function showLeads($id, Request $request)
     //     }
     // }
 
+    // public function TeamReport(Request $request)
+    // {
+    //     $Options = [
+    //         'total' => 'Total Visits',
+    //         'completed' => 'Completed Visits',
+    //         'pending' => 'Pending Visits',
+    //     ];
+    //     $filter = $request->get('filter', 'total');
+    //     $search = $request->input('search.value');
+
+    //     $leadsQuery = Leads::with(['business' => function ($query) {
+    //         $query->select('id', 'owner_first_name', 'owner_last_name', 'name', 'owner_email');
+    //     }, 'user' => function ($query) {
+    //         $query->select('id', 'first_name', 'last_name', 'email');
+    //     }])->orderBy('created_at', 'desc');
+
+    //     if ($filter == 'completed') {
+    //         $leadsQuery->where('ti_status', 1);
+    //     } elseif ($filter == 'pending') {
+    //         $leadsQuery->where('ti_status', 2);
+    //     }
+
+    //     if ($search) {
+    //         $leadsQuery->where(function ($query) use ($search) {
+    //             $query->whereHas('business', function ($query) use ($search) {
+    //                 $query->where('name', 'like', "%$search%")
+    //                     ->orWhere('owner_first_name', 'like', "%$search%")
+    //                     ->orWhere('owner_last_name', 'like', "%$search%");
+    //             })
+    //                 ->orWhereHas('user', function ($query) use ($search) {
+    //                     $query->where('first_name', 'like', "%$search%")
+    //                         ->orWhere('last_name', 'like', "%$search%")
+    //                         ->orWhere('email', 'like', "%$search%");
+    //                 });
+    //         });
+    //     }
+
+    //     if ($srch = DataTableHelper::search()) {
+    //         $q = $leadsQuery->where(function ($query) use ($srch) {
+    //             foreach (['business_name', 'owner_name', 'owner_email', 'assigned_to', 'assigned_email', 'assigned_on', 'assigned_on'] as $k => $v) {
+    //                 if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+    //                 else $query->orWhere($v, 'like', '%' . $srch . '%');
+    //             }
+    //         });
+    //     }
+
+    //     $count = $leadsQuery->count();
+
+    //     if (DataTableHelper::sortBy() == 'ti_status') {
+    //         $q = $leadsQuery->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
+    //     }
+
+    //     $leads = $leadsQuery->get();
+
+    //     $data = $leads->map(function ($lead) {
+    //         return [
+    //             'id' => $lead->id,
+    //             'business_name' => $lead->business->name ?? '',
+    //             'owner_name' => $lead->business ? $lead->business->owner_first_name . ' ' . $lead->business->owner_last_name : 'No Owner Name',
+    //             'owner_email' => $lead->business->owner_email ?? '',
+    //             'assigned_to' => $lead->user ? $lead->user->first_name . ' ' . $lead->user->last_name : 'Not Assigned',
+    //             'assigned_email' => $lead->user->email ?? '',
+    //             'Status' => $lead->leadStatus(),
+    //             'visit_date' => $lead->visit_date,
+    //             'created_at' => $lead->created_at->format('Y-m-d'),
+    //             'assigned_on' => $lead->created_at->format('Y-m-d'),
+    //         ];
+    //     });
+
+    //     return view('TeamReport.TeamView', [
+    //         'title' => 'Teams | Reports',
+    //         'leads' => $data,
+    //         'Options' => $Options,
+    //         'selectedFilter' => $filter,
+    //         'table' => 'tableReport',
+    //         'recordsTotal' => $count,
+    //         'recordsFiltered' => $count,
+    //         'search' => $search,
+    //     ]);
+    // }
     public function TeamReport(Request $request)
     {
         $Options = [
-            'total' => 'Total Visits',
-            'completed' => 'Completed Visits',
-            'pending' => 'Pending Visits',
+            'day_wise' => 'Date',
+            'team_member_wise' => 'Team Member ',
+            'conversation_wise' => 'Conversation ',
+            'overall' => 'All'
         ];
-        $filter = $request->get('filter', 'total');
+    
+        $filter = $request->get('filter', 'overall');
         $search = $request->input('search.value');
-
-        $leadsQuery = Leads::with(['business' => function ($query) {
-            $query->select('id', 'owner_first_name', 'owner_last_name', 'name', 'owner_email');
-        }, 'user' => function ($query) {
-            $query->select('id', 'first_name', 'last_name', 'email');
-        }])->orderBy('created_at', 'desc');
-
-        if ($filter == 'completed') {
-            $leadsQuery->where('ti_status', 1);
-        } elseif ($filter == 'pending') {
-            $leadsQuery->where('ti_status', 2);
+    
+        // Initialize the leads query
+        $leadsQuery = Leads::with(['business', 'user'])
+                            ->orderBy('created_at', 'desc');
+    
+        // Apply filters based on the selected option
+        switch ($filter) {
+            case 'day_wise':
+                $selectedDate = $request->input('selected_date');
+                // Check if a date is selected
+                if ($selectedDate) {
+                    // Filter leads for the selected date
+                    $leadsQuery->whereDate('created_at', $selectedDate);
+                }
+                break;
+                case 'team_member_wise':
+                    // Fetch team members
+                    $teamMembers = User::whereDoesntHave('roles')
+                                        ->orWhereHas('roles', function ($query) {
+                                            $query->where('name', 'user');
+                                        })
+                                        ->get();
+                    // Filter leads by the selected team member
+                    $selectedMemberId = $request->input('selected_member');
+                    if ($selectedMemberId) {
+                        $leadsQuery->where('team_id', $selectedMemberId); // Adjust the column name here
+                    }
+                    break;                
+                case 'conversation_wise':
+                    // Check if conversation type is selected
+                    $conversationType = $request->input('conversation_type');
+                    if ($conversationType === 'pending') {
+                        $leadsQuery->where('ti_status', 2);
+                    } elseif ($conversationType === 'complete') {
+                        $leadsQuery->where('ti_status', 1);
+                    }
+                    break;
+            default:
+                // No additional filtering required for overall report
+                break;
         }
-
+    
+        // Apply search filter
         if ($search) {
             $leadsQuery->where(function ($query) use ($search) {
+                // Add relevant fields for searching
                 $query->whereHas('business', function ($query) use ($search) {
                     $query->where('name', 'like', "%$search%")
-                        ->orWhere('owner_first_name', 'like', "%$search%")
-                        ->orWhere('owner_last_name', 'like', "%$search%");
-                })
-                    ->orWhereHas('user', function ($query) use ($search) {
-                        $query->where('first_name', 'like', "%$search%")
-                            ->orWhere('last_name', 'like', "%$search%")
-                            ->orWhere('email', 'like', "%$search%");
-                    });
+                          ->orWhere('owner_first_name', 'like', "%$search%")
+                          ->orWhere('owner_last_name', 'like', "%$search%");
+                })->orWhereHas('user', function ($query) use ($search) {
+                    $query->where('first_name', 'like', "%$search%")
+                          ->orWhere('last_name', 'like', "%$search%")
+                          ->orWhere('email', 'like', "%$search%");
+                });
             });
         }
-
-        if ($srch = DataTableHelper::search()) {
-            $q = $leadsQuery->where(function ($query) use ($srch) {
-                foreach (['business_name', 'owner_name', 'owner_email', 'assigned_to', 'assigned_email', 'assigned_on', 'assigned_on'] as $k => $v) {
-                    if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-                    else $query->orWhere($v, 'like', '%' . $srch . '%');
-                }
-            });
-        }
-
-        $count = $leadsQuery->count();
-
-        if (DataTableHelper::sortBy() == 'ti_status') {
-            $q = $leadsQuery->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-        }
-
+    
+        // Fetch leads data
         $leads = $leadsQuery->get();
-
+    
+        // Map the data
         $data = $leads->map(function ($lead) {
             return [
                 'id' => $lead->id,
@@ -413,24 +512,28 @@ public function showLeads($id, Request $request)
                 'owner_email' => $lead->business->owner_email ?? '',
                 'assigned_to' => $lead->user ? $lead->user->first_name . ' ' . $lead->user->last_name : 'Not Assigned',
                 'assigned_email' => $lead->user->email ?? '',
-                'Status' => $lead->leadStatus(),
+                'Status' => $lead->leadStatus(), // Ensure consistent naming
                 'visit_date' => $lead->visit_date,
                 'created_at' => $lead->created_at->format('Y-m-d'),
                 'assigned_on' => $lead->created_at->format('Y-m-d'),
             ];
         });
+        $selectedDate = $request->input('selected_date', ''); // Fetch the selected date from the request parameters, defaulting to an empty string if not set
 
         return view('TeamReport.TeamView', [
             'title' => 'Teams | Reports',
             'leads' => $data,
             'Options' => $Options,
             'selectedFilter' => $filter,
-            'table' => 'tableReport',
-            'recordsTotal' => $count,
-            'recordsFiltered' => $count,
+            'table' => 'tableReport', // Assuming this is the table ID for DataTables
             'search' => $search,
+            'selectedDate' => $selectedDate, // Pass the selected date to the view
+            'teamMembers' => $teamMembers ?? null, // Pass team members to the view
         ]);
     }
+    
+    
+
     public function showDetail($id)
     {
 

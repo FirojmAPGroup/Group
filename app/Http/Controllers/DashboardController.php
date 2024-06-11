@@ -47,29 +47,29 @@ class DashboardController extends Controller
             case 'all':
                 return $this->getAllVisitsData();
             default:
-                return $this->getVisitsDataForDay(); // Default to today's data
+                return $this->getVisitsDataForWeek(); // Default to today's data
         }
     }
 
     private function getVisitsDataForDay()
     {
-        $date = Carbon::now()->toDateString(); // Get today's date
-
+        $date = Carbon::now(); // Get today's date
+        $labels = [$date->format('l, F j')]; // Day name
         $totalVisits = Leads::whereDate('created_at', $date)->count();
-        $completedVisits = Leads::whereDate('visit_date', $date)->where('ti_status', 1)->count();
+        $completedVisits = Leads::whereDate('created_at', $date)->where('ti_status', 1)->count();
         $pendingVisits = Leads::whereDate('created_at', $date)->where('ti_status', 2)->count();
         $unassignedVisits = Business::whereDate('created_at', $date)->where('ti_status', 0)->count();
-
+    
         // Return an array with the visit data and labels
         return [
             'totalVisits' => $totalVisits,
             'completedVisits' => $completedVisits,
             'pendingVisits' => $pendingVisits,
             'unassignedVisits' => $unassignedVisits,
-            'labels' => [$date], // Provide the current date as the label
+            'labels' => $labels,
         ];
     }
-
+    
 
 
     private function getVisitsDataForWeek()

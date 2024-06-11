@@ -59,7 +59,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
             Route::post('teams/approve/{id}', 'TeamsController@statusChange')->name('teams.aprove');
             Route::post('teams/reject/{id}', 'TeamsController@statusChange')->name('teams.reject');
             Route::post('teams/block/{id}', 'TeamsController@statusChange')->name('teams.block');
-            Route::get('team/{id}/leads', 'TeamsController@showLeads')->name('team.leads');
+            Route::get('team/leads/{id}', 'TeamsController@showLeads')->name('team.leads');
 
               // TeamReport
             Route::get('team/report', 'TeamsController@TeamReport')->name('teams.view');

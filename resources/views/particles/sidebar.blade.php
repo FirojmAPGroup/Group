@@ -14,17 +14,25 @@
                     <li><a class="has-arrow" href="javascript:void()" aria-expanded="false">Team</a>
                         <ul aria-expanded="false">
                             <li><a href="{{ routePut('teams.list') }}">Team List</a></li>
-                            <li><a href="{{ routePut('teams.view') }}">Team Report</a></li>
                         </ul>
                     </li>
                 </ul>
             </li>
+           
+
             <li><a class="has-arrow" href="javascript:void()" aria-expanded="false"><i
                         class="mdi mdi-calendar"></i><span class="nav-text">Leads</span></a>
                 <ul aria-expanded="false">
                     <li><a href="{{ routePut('leads.list') }}">List</a></li>
                     <li><a href="{{ routePut('leads.asign') }}">Assign Leads</a></li>
                 </ul>
+            </li>
+            <li>
+                <a href="{{ routePut('teams.view') }}">
+                    <i class="fa fa-clipboard" style="font-size:14px">      
+                    </i> 
+                    Report
+                </a>
             </li>
             <li><a class="has-arrow" href="javascript:void()" aria-expanded="false"><i
                         class="mdi mdi-book-open-variant"></i><span class="nav-text">Pages</span></a>

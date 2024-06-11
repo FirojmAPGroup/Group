@@ -18,9 +18,11 @@
                 Select Team Member
             </button>
             <div class="dropdown-menu" aria-labelledby="teamMemberDropdown" style="max-height: 200px; overflow-y: auto;">
+                <a class="dropdown-item" href="#" data-member-id="all">Show All</a>
                 @foreach($teamMembers as $member)
                 <a class="dropdown-item" href="#" data-member-id="{{ $member->id }}">{{ $member->first_name }} {{ $member->last_name }}</a>
                 @endforeach
+
             </div>
         </div>
     </div>
@@ -35,11 +37,11 @@
                         <thead>
                             <tr>
                                 <th data-data="name">Company Name</th>
-                                <th data-data="owner_full_name">Lead Full Name</th>
-                                <th data-data="owner_email">Lead Email</th>
-                                <th data-data="owner_number">Lead Number</th>
-                                <th data-data="ti_status">Status</th>
-                                <th data-data="user_full_name">Team Full Name</th>
+                                <th data-data="owner_full_name"> Full Name</th>
+                                {{-- <th data-data="owner_email"> Email</th> --}}
+                                <th data-data="owner_number"> Number</th>
+                                <th data-data="ti_status"></th>
+                                <th data-data="user_full_name"> Full Name</th>
                                 <th data-data="details" data-sortable="false">Details</th>
                             </tr>
                         </thead>
@@ -58,7 +60,7 @@
 @endpush
 
 @push('script')
-<script>
+{{-- <script>
     jQuery(document).ready(function() {
         var dtTable;
         var selectedMemberName = '';
@@ -86,6 +88,52 @@
             reloadDataTable(memberId);
         });
     });
+</script> --}}
+@push('script')
+<script>
+    jQuery(document).ready(function() {
+        var dtTable;
+        var selectedMemberName = '';
+
+        // Function to reload DataTable with selected team member
+        function reloadDataTable(memberId) {
+            var url = '{{ $urlListData }}';
+            if (memberId !== 'all') {
+                url += '?member_id=' + memberId;
+            }
+            dtTable.ajax.url(url).load();
+        }
+
+        // Function to update selected member name in the dropdown button
+        function updateSelectedMemberName(memberName) {
+            selectedMemberName = memberName;
+            $('#teamMemberDropdown').html(selectedMemberName);
+        }
+
+        // Initialize DataTable
+        dtTable = applyDataTable('#{{ $table }}', '{{ $urlListData }}', {});
+
+        // Handle team member selection
+        $('.dropdown-item').click(function(e) {
+            e.preventDefault();
+            var memberId = $(this).data('member-id');
+            var memberName = $(this).text();
+            updateSelectedMemberName(memberName);
+            reloadDataTable(memberId);
+        });
+
+        $('table').on('draw.dt', function () {
+            $('td[data-data="owner_full_name"]').each(function () {
+                var text = $(this).text();
+                if (text.length > 20) {
+                    $(this).text(text.substring(0, 10) + '...');
+                }
+            });
+        });
+    });
+
 </script>
+@endpush
+
 
 @endpush

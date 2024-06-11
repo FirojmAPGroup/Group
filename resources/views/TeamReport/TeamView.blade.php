@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('content')
@@ -18,7 +17,37 @@
                 @endforeach
             </select>
         </form>
-       
+        @if ($selectedFilter == 'day_wise')
+            <form action="{{ route('teams.view') }}" method="GET">
+                <input type="hidden" name="filter" value="day_wise">
+                <input type="date" name="selected_date" value="{{ $selectedDate ?? '' }}"class="form-control" style="width: 150px; display: inline-block; margin-right: 10px;margin-left:10px">
+                <button type="submit" class="btn trust-wave-button-color">Apply</button>
+            </form>
+        @elseif ($selectedFilter == 'team_member_wise')
+        <form action="{{ route('teams.view') }}" method="GET">
+            <input type="hidden" name="filter" value="team_member_wise">
+            <select id="selected_member" name="selected_member" class="btn btn-secondary" onchange="this.form.submit()">
+                @php $defaultName = "Select Team Member"; @endphp
+                <option value="">{{ isset($selectedMemberId) ? $defaultName : $defaultName }}</option>
+                @foreach ($teamMembers as $member)
+                    <option value="{{ $member->id }}" {{ isset($selectedMemberId) && $selectedMemberId == $member->id ? 'selected' : '' }}>
+                        {{ $member->first_name }} {{ $member->last_name }}
+                    </option>
+                @endforeach
+            </select>
+        </form>
+        @elseif ($selectedFilter == 'conversation_wise')
+        <form action="{{ route('teams.view') }}" method="GET">
+            <input type="hidden" name="filter" value="conversation_wise" class="form-control" style="width: 100px; display: inline-block; margin-right: 10px;margin-left:10px">
+            <select name="conversation_type" class="btn btn-secondary">
+                <option value="" >Select Conversation Type</option>
+                <option value="pending" {{ isset($selectedConversationType) && $selectedConversationType == 'pending' ? 'selected' : '' }}>Pending</option>
+                <option value="complete" {{ isset($selectedConversationType) && $selectedConversationType == 'complete' ? 'selected' : '' }}>Complete</option>
+            </select>
+            <button type="submit" class="btn trust-wave-button-color">Apply</button>
+        </form>
+         @endif
+
     </div>
 </div>
 <div class="row">
@@ -39,17 +68,18 @@
                         </thead>
                         <tbody>
                             @foreach($leads as $lead)
-                           
-                            <tr>
-                                <td>{{ $lead['business_name'] }}</td>
-                                <td >{{ $lead['owner_name'] }}</td>
-                                <td>{{ $lead['assigned_to'] }}</td>
-
-                                <td style="padding: 10px ;">{!! $lead['Status'] !!}</td>
-                                <td>{{ $lead['visit_date'] }}</td>
-                               <th style="padding-left: 15px ;">    <a href="{{ route('teams.detail', ['id' => $lead['id']]) }}">
-                                <i class="fa fa-eye" style="font-size:20px;"></i></a></th>
-                            </tr>
+                                <tr>
+                                    <td>{{ $lead['business_name'] }}</td>
+                                    <td>{{ $lead['owner_name'] }}</td>
+                                    <td>{{ $lead['assigned_to'] }}</td>
+                                    <td style="padding: 10px;">{!! $lead['Status'] !!}</td>
+                                    <td>{{ $lead['visit_date'] }}</td>
+                                    <td style="padding-left: 15px;">
+                                        <a href="{{ route('teams.detail', ['id' => $lead['id']]) }}">
+                                            <i class="fa fa-eye" style="font-size:20px;"></i>
+                                        </a>
+                                    </td>
+                                </tr>
                             @endforeach
                         </tbody>
                     </table>
@@ -62,6 +92,14 @@
 
 @push('js')
     <script src="{{ asset('vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
+    <script>
+        // Update the dropdown text with the selected team member's name
+        document.getElementById('selected_member').addEventListener('change', function() {
+            var selectElement = document.getElementById('selected_member');
+            var selectedOption = selectElement.options[selectElement.selectedIndex];
+            selectElement.options[0].text = selectedOption.text;
+        });
+    </script>
 @endpush
 
 @push('script')

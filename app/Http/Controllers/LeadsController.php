@@ -116,68 +116,133 @@ class LeadsController extends Controller
         return view('leads.view',['heading'=>$heading,'business'=>$business]);
 
     }
-    public function loadList(){
-        try {
+    // public function loadList(){
+    //     try {
 
-        $leadsQuery = Leads::with(['business' => function ($query) {
-            $query->select('id', 'owner_first_name', 'owner_last_name', 'name', 'owner_email');
-        }, 'user' => function ($query) {
-            $query->select('id', 'first_name', 'last_name', 'email');
-        }])->get();
+    //     $leadsQuery = Leads::with(['business' => function ($query) {
+    //         $query->select('id', 'owner_first_name', 'owner_last_name', 'name', 'owner_email');
+    //     }, 'user' => function ($query) {
+    //         $query->select('id', 'first_name', 'last_name', 'email');
+    //     }])->get();
 
-			$q = Business::query();
-			if ($srch = DataTableHelper::search()) {
-				$q = $q->where(function ($query) use ($srch) {
-					foreach (['name', 'owner_first_name','owner_last_name', 'owner_email','owner_number','pincode','city','state','country','area'] as $k => $v) {
-						if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-						else $query->orWhere($v, 'like', '%' . $srch . '%');
-					}
-				});
-			}
-			$count = $q->count();
+	// 		$q = Business::query();
+	// 		if ($srch = DataTableHelper::search()) {
+	// 			$q = $q->where(function ($query) use ($srch) {
+	// 				foreach (['name', 'owner_first_name','owner_last_name', 'owner_email','owner_number','pincode','city','state','country','area'] as $k => $v) {
+	// 					if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+	// 					else $query->orWhere($v, 'like', '%' . $srch . '%');
+	// 				}
+	// 			});
+	// 		}
+	// 		$count = $q->count();
 
-			if (DataTableHelper::sortBy() == 'ti_status') {
-				$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-			} else {
-				$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
-			}
-			$q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
+	// 		if (DataTableHelper::sortBy() == 'ti_status') {
+	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
+	// 		} else {
+	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
+	// 		}
+	// 		$q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
 
-			$data = [];
+	// 		$data = [];
          
-            foreach ($leadsQuery as $lead) {
-                $assignedUser = $lead->user ? $lead->user->first_name : 'N/A'; // Name of the assigned user
-                $businessName = $lead->business ? $lead->business->name : 'N/A'; // Name of the associated business
+    //         foreach ($leadsQuery as $lead) {
+    //             $assignedUser = $lead->user ? $lead->user->first_name : 'N/A'; // Name of the assigned user
+    //             $businessName = $lead->business ? $lead->business->name : 'N/A'; // Name of the associated business
 
+    //             $data[] = [
+    //                 // 'lead_id' => $lead->id,
+    //                 'name' => $businessName,
+    //                 'owner_first_name' => $lead->business ? $lead->business->owner_first_name : 'N/A',
+    //                 'owner_last_name' => $lead->business ? $lead->business->owner_last_name : 'N/A',
+    //                 'owner_email' => $lead->business ? $lead->business->owner_email : 'N/A',
+
+    //                 'team'=>$assignedUser,
+    //                 'id'=>$lead->business->id,
+	// 				'ti_status' => $lead->leadStatus(),
+	// 				// 'created_at' => putNA($single->showCreated(1)),
+    //                 'details' =>'<a href="' . route('leads.view',['id'=>encrypt($lead->getId())]) . '">View Details</a>',
+	// 				'actions' => putNA(DataTableHelper::listActions([
+    //                     'edit'=>routePut('leads.edit',['id'=>encrypt($lead->business->getId())])
+    //                 ]))
+	// 			];
+	// 		}
+
+	// 		return $this->resp(1, '', [
+	// 			'draw' => request('draw'),
+	// 			'recordsTotal' => $count,
+	// 			'recordsFiltered' => $count,
+	// 			'data' => $data
+	// 		]);
+	// 	} catch (\Throwable $th) {
+	// 		return $this->resp(0, exMessage($th), [], 500);
+	// 	}
+    // }
+    public function loadList()
+    {
+        try {
+            $q = Business::query();
+    
+            // Apply search filter
+            if ($srch = DataTableHelper::search()) {
+                $q->where(function ($query) use ($srch) {
+                    foreach (['name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number', 'pincode', 'city', 'state', 'country', 'area'] as $v) {
+                        $query->orWhere($v, 'like', '%' . $srch . '%');
+                    }
+                });
+            }
+    
+            // Count total records
+            $count = $q->count();
+    
+            // Apply sorting
+            $sortBy = DataTableHelper::sortBy();
+            $sortDir = DataTableHelper::sortDir();
+            if ($sortBy == 'ti_status') {
+                $q->orderBy($sortBy, $sortDir == 'asc' ? 'desc' : 'asc');
+            } else {
+                $q->orderBy($sortBy, $sortDir);
+            }
+    
+            // Apply pagination
+            $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
+    
+            // Fetch data
+            $businesses = $q->get();
+    
+            $data = [];
+            foreach ($businesses as $business) {
+                $assignedUser = 'N/A';
+                $lead = $business->leads()->first();
+                if ($lead) {
+                    $assignedUser = $lead->user ? $lead->user->first_name : 'N/A';
+                    $assignedUser .= $lead->user && $lead->user->last_name ? ' ' . $lead->user->last_name : '';
+                }
                 $data[] = [
-                    // 'lead_id' => $lead->id,
-                    'name' => $businessName,
-                    'owner_first_name' => $lead->business ? $lead->business->owner_first_name : 'N/A',
-                    'owner_last_name' => $lead->business ? $lead->business->owner_last_name : 'N/A',
-                    'owner_email' => $lead->business ? $lead->business->owner_email : 'N/A',
-
-                    'team'=>$assignedUser,
-                    'id'=>$lead->business->id,
-					'ti_status' => $lead->leadStatus(),
-					// 'created_at' => putNA($single->showCreated(1)),
-                    'details' =>'<a href="' . route('leads.view',['id'=>encrypt($lead->getId())]) . '">View Details</a>',
-					'actions' => putNA(DataTableHelper::listActions([
-                        'edit'=>routePut('leads.edit',['id'=>encrypt($lead->business->getId())])
+                    'name' => putNA($business->name),
+                    'owner_name' => putNA($business->owner_first_name . ' ' . $business->owner_last_name),
+                    'owner_number' => putNA($business->owner_number),
+                    'city' => putNA($business->city),
+                    'ti_status' => $business->leadStatus(),
+                    'assigned_user_name' => $assignedUser, // New column for assigned user's name
+                    'details' => '<a href="' . route('leads.view', ['id' => encrypt($business->getId())]) . '">View Details</a>',
+                    'actions' => putNA(DataTableHelper::listActions([
+                        'edit' => routePut('leads.edit', ['id' => encrypt($business->getId())])
                     ]))
-				];
-			}
-
-			return $this->resp(1, '', [
-				'draw' => request('draw'),
-				'recordsTotal' => $count,
-				'recordsFiltered' => $count,
-				'data' => $data
-			]);
-		} catch (\Throwable $th) {
-			return $this->resp(0, exMessage($th), [], 500);
-		}
+                ];
+            }
+    
+            return response()->json([
+                'draw' => request('draw'),
+                'recordsTotal' => $count,
+                'recordsFiltered' => $count,
+                'data' => $data
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json(['error' => exMessage($th)], 500);
+        }
     }
-
+    
+    
     public function create($id = 0){
         $useID = $id ? useId($id) : 0;
         $title = $useID ? "Edit Lead" : "Create Lead";
@@ -304,9 +369,8 @@ class LeadsController extends Controller
     public function bulkupload()
     {
         $rules = [
-            'file' => 'required|mimes:csv,xlsx,xls'
+            'file' => 'required'
         ];
-        $file = request()->file('file');
     
         // Validate the file
         $validator = Validator::make(request()->all(), $rules);
@@ -315,6 +379,7 @@ class LeadsController extends Controller
         }
     
         try {
+            $file = request()->file('file');
             $spreadsheet = IOFactory::load($file->getPathname());
             $sheetData = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
     
@@ -327,81 +392,64 @@ class LeadsController extends Controller
                 $data[] = array_combine($headings, $rowData);
             }
     
-            $filledData = [];
-    
             foreach ($data as $value) {
-                $filledData = [
-                    'name' => $value['Company name'],
-                    'owner_first_name' => $value['Owner first name'],
-                    'owner_last_name' => $value['Owner last name'],
-                    'owner_number' => $value['Contact'],
-                    'owner_email' => $value['email'],
-                    'pincode' => $value['Pincode'],
-                    'city' => $value['City'],
-                    'state' => $value['State'],
-                    'country' => $value['Unit name'],
-                    'latitude' => $value['latitude'],
-                    'longitude' => $value['longitude'],
-                    'area' => $value['Area'],
-                    'address' => $value['Address'],
-                    'created_at' => \Carbon\Carbon::now(),
-                    'updated_at' => \Carbon\Carbon::now()
-                ];
+                // Find the nearest user based on latitude and longitude
+                $nearestUser = $this->findNearestUser($value['latitude'], $value['longitude']);
     
-                // Determine nearby locations and assign automatic values
-                $nearestLocation = $this->findNearestLocation($value['latitude'], $value['longitude']);
-                if ($nearestLocation) {
-                    $filledData['team_id'] = $nearestLocation->team_id;
-                    $filledData['visit_date'] = \Carbon\Carbon::today();
-    
-                    // Assign team member based on the nearest location
-                    $teamMember = $this->assignTeamMember($nearestLocation->latitude, $nearestLocation->longitude);
-                    if ($teamMember) {
-                        $filledData['assigned_team_member_id'] = $teamMember->id;
-                    }
-                }
-    
-                $business = Business::create($filledData);
-    
-                // Assign user based on pincode
-                $userId = User::getUserIdUsingPincode($business->pincode);
-                if ($userId) {
-                    $filledLeadData = [
-                        'business_id' => $business->id,
-                        'team_id' => $userId,
-                        'visit_date' => \Carbon\Carbon::today()
+                if ($nearestUser) {
+                    $filledData = [
+                        'name' => $value['Company name'],
+                        'owner_first_name' => $value['Owner first name'],
+                        'owner_last_name' => $value['Owner last name'],
+                        'owner_number' => $value['Contact'],
+                        'owner_email' => $value['email'],
+                        'pincode' => $value['Pincode'],
+                        'city' => $value['City'],
+                        'state' => $value['State'],
+                        'latitude' => $value['latitude'],
+                        'longitude' => $value['longitude'],
+                        'area' => $value['Area'],
+                        'address' => $value['Address'],
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'team_id' => $nearestUser->id, // Assign the nearest user ID
+                        'visit_date' => now()
                     ];
-                    Leads::create($filledLeadData);
-                    $business->ti_status = 5;
-                    $business->save();
+                    $status = $filledData ? $business->ti_status : 0;
+                    // Create the business entry
+                    $business = Business::create($filledData);
+    
+                    // Assign user based on pincode
+                    $userId = User::getUserIdUsingPincode($business->pincode);
+                    if ($userId) {
+                        $leadData = [
+                            'business_id' => $business->id,
+                            'team_id' => $userId,
+                            'visit_date' => now()
+                        ];
+                        Leads::create($leadData);
+                        $business->ti_status = 5;
+                        $business->save();
+                    }
                 }
             }
     
-            return $this->resp(1, "Upload successful", $filledData);
+            return $this->resp(1, "Upload successful");
         } catch (\Throwable $e) {
             return $this->resp(0, exMessage($e), [], 500);
         }
     }
     
     /**
-     * Find the nearest location from the database.
+     * Find the nearest user based on latitude and longitude.
      */
-    private function findNearestLocation($latitude, $longitude)
+    private function findNearestUser($latitude, $longitude)
     {
-        $locations = Location::all(); // Assuming you have a Location model that stores team locations
-        $nearestLocation = null;
-        $minDistance = PHP_FLOAT_MAX;
-    
-        foreach ($locations as $location) {
-            $distance = $this->haversineGreatCircleDistance($latitude, $longitude, $location->latitude, $location->longitude);
-            if ($distance < $minDistance) {
-                $minDistance = $distance;
-                $nearestLocation = $location;
-            }
-        }
-    
-        return $nearestLocation;
+        return User::selectRaw("*, (6371 * acos(cos(radians($latitude)) * cos(radians(latitude)) * cos(radians($longitude) - radians(longitude)) + sin(radians($latitude)) * sin(radians(latitude)))) AS distance")
+            ->orderBy('distance')
+            ->first();
     }
+    
     
     /**
      * Assign the nearest team member based on latitude and longitude.
@@ -615,7 +663,7 @@ class LeadsController extends Controller
                 $data[] = [
                     'name' => putNA($single->business_name),
                     'owner_full_name' => putNA($single->owner_first_name . ' ' . $single->owner_last_name),
-                    'owner_email' => putNA($single->owner_email),
+                    // 'owner_email' => putNA($single->owner_email),
                     'owner_number' => putNA($single->owner_number),
                     'ti_status' => $tiStatus,
                     'user_full_name' =>$userFullName,
@@ -638,60 +686,46 @@ class LeadsController extends Controller
     
 
     public function calculateDistance(Request $request)
-    {
+    { 
         try {
-            // Fetch all users from the database
-            $users = User::all();
-            
-            // Fetch all businesses from the database
-            $businesses = Business::all();
-            $data = [];
-    
-            foreach ($businesses as $business) {
-                $nearestUser = null;
-                $minDistance = PHP_FLOAT_MAX;
-    
-                foreach ($users as $user) {
-                    $distance = $this->haversineGreatCircleDistance(
-                        $user->latitude,
-                        $user->longitude,
-                        $business->latitude,
-                        $business->longitude
-                    );
-    
-                    if ($distance < $minDistance) {
-                        $minDistance = $distance;
-                        $nearestUser = $user;
-                    }
-                }
-    
-                if ($nearestUser) {
-                    $data[] = [
-                        'user_full_name' => $nearestUser->first_name . ' ' . $nearestUser->last_name,
-                        'user_email' => $nearestUser->email,
-                        'user_phone_number' => $nearestUser->phone_number,
-                        'distance' => round($minDistance, 2),
-                        'business_name' => $business->name,
-                        'owner_first_name' => $business->owner_first_name,
-                        'owner_last_name' => $business->owner_last_name,
-                        'owner_email' => $business->owner_email,
-                        'owner_number' => $business->owner_number,
-                        'pincode' => $business->pincode,
-                    ];
-                }
+			$q = Business::query();
+		
+
+			
+			$data = [];
+			foreach ($q->get() as $single) {
+                $assignedUser = 'N/A';
+            $lead = $single->leads()->first();
+            if ($lead) {
+                $assignedUser = $lead->user ? $lead->user->first_name : 'N/A';
+                $assignedUser .= $lead->user && $lead->user->last_name ? ' ' . $lead->user->last_name : '';
             }
+				$data[] = [
+					// 'id' => '<input type="checkbox" class="chk-multi-check" value="' . $single->getId() . '" />',
+					'name' => putNA($single->name),
+                    'owner_name' => putNA($single->owner_first_name . ' ' . $single->owner_last_name),
+                    'owner_number'=>putNA($single->owner_number),
+                    'city'=>putNA($single->city),
+					'ti_status' => $single->leadStatus(),
+                    'assigned_user_name' => $assignedUser, // New column for assigned user's name
+                    'details' =>'<a href="' . route('leads.view',['id'=>encrypt($single->getId())]) . '">
+                    View Details</a>',
+					'actions' => putNA(DataTableHelper::listActions([
+                        'edit'=>routePut('leads.edit',['id'=>encrypt($single->getId())])
+                    ]))
+				];
+			}
+            dd($data);
+			return $this->resp(1, '', [
+				'draw' => request('draw'),
+				'recordsTotal' => $count,
+				'recordsFiltered' => $count,
+				'data' => $data
+			]);
+		} catch (\Throwable $th) {
+			return $this->resp(0, exMessage($th), [], 500);
+		}
     
-            // Sort the data by distance in ascending order
-            usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
-    
-            return response()->json([
-                'code' => 200,
-                'data' => $data,
-                'message' => 'Data retrieved and sorted by distance successfully'
-            ]);
-        } catch (\Throwable $th) {
-            return response()->json(['error' => $th->getMessage()], 500);
-        }
     }
     
     private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371)

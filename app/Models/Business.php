@@ -23,4 +23,8 @@ class Business extends Model
     {
         return $this->hasMany(CustomNotification::class);
     }
+    public function leads()
+    {
+        return $this->hasMany(Leads::class); // Assuming the Lead model name is Lead
+    }
 }
