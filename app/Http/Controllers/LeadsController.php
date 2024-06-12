@@ -245,6 +245,7 @@ class LeadsController extends Controller
         $business = $business ?? new Business();
         return view('leads.form',['heading'=>$heading,'title'=>$title,'business'=>$business]);
     }
+
     public function save(){
         try {
             $rules = [
@@ -261,6 +262,7 @@ class LeadsController extends Controller
                 'longitude'=>'required',
                 'latitude'=>'required'
             ];
+    
             $messages = [
                 'name.required'=>"Please Provide Business Name",
                 'owner_first_name.required'=>"Please Provide Owner Name",
@@ -278,19 +280,32 @@ class LeadsController extends Controller
                 'latitude.required'=>"please provide Latitude",
                 'longitude.required'=>"please provide Longitude",
             ];
+    
             $validator = validate(request()->all(), $rules, $messages);
-            if(!empty($validator)){
-                return $this->resp(0,$validator[0],[],500);
+    
+            if (!empty($validator)) {
+                return $this->resp(0, $validator[0], [], 500);
             }
-            $business = Business::find(useId(request()->get('id')));
-
-            // notification
-            $isNewBusiness = !$business;
-
-
+    
+            $id = useId(request()->get('id'));
+            $isNewBusiness = !$id;
+            $business = $isNewBusiness ? new Business() : Business::find($id);
+    
+            if ($isNewBusiness) {
+                // Check if email or mobile number already exists
+                $existingBusinessemail = Business::where('owner_email', request()->get('owner_email'))
+                                            ->first();
+                $existingBusinessmobile = Business::Where('owner_number', request()->get('owner_number'))
+                                            ->first();
+                if ($existingBusinessemail) {
+                    return $this->resp(0, 'Email is already exist in our system . please provide new email', [], 500);
+                }elseif ($existingBusinessmobile) {
+                    return $this->resp(0, 'Mobile Number is already exist in our system . please provide new Mobile Number', [], 500);
+                }
+            }
+    
             $status = $business ? $business->ti_status : 0;
-            $business = $business ?? new Business();
-
+    
             $business->name = request()->get('name');
             $business->owner_first_name = request()->get('owner_first_name');
             $business->owner_last_name = request()->get('owner_last_name');
@@ -303,20 +318,23 @@ class LeadsController extends Controller
             $business->pincode = request()->get('pincode');
             $business->latitude = request()->get('latitude');
             $business->longitude = request()->get('longitude');
-            $business->ti_status =$status;
+            $business->ti_status = $status;
             $business->save();
-            $messages = useId(request()->get('id')) ?" Lead updated successfuly" :"Lead created successfuly";
-            $url = useId(request()->get('id')) ? routePut('leads.list') : routePut('leads.list');
-
+    
+            $messages = $isNewBusiness ? "Lead created successfully" : "Lead updated successfully";
+            $url = routePut('leads.list');
+    
             // Notify all users
             Notification::send(User::all(), new NewBusinessNotification($business, $isNewBusiness));
-
-            return $this->resp(1,$messages,['url'=>$url],200);
+    
+            return $this->resp(1, $messages, ['url' => $url], 200);
         } catch (\Throwable $th) {
-            return $this->resp(0,$th->getMessage(),[],500);
+            return $this->resp(0, $th->getMessage(), [], 500);
         }
     }
-
+    
+    
+    
     public function asignLead(){
         $leadsObj = Business::where('ti_status',[0,1,2])->get();
         $leads=[];

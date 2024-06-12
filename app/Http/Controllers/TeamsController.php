@@ -64,7 +64,7 @@ class TeamsController extends Controller
                     'email' => putNA($user->email),
                     'ti_status' => $user->listStatusBadge(),
                     'created_at' => putNA($user->showCreated(1)),
-                    'leads_count' => '<a href="' . route('team.leads', ['id' => $user->id]) . '">' . $user->has_leads_count . '</a>',
+                    'leads_count' => '<a href="' . route('team.leads', ['id' => $user->id]) . '" style="color: black !important; font-weight: bold;">' . $user->has_leads_count . '</a>',
                     'actions' => putNA(DataTableHelper::listActions([
                         'edit' => auth()->user()->can('team edit') ? routePut('teams.edit', ['id' => encrypt($user->id)]) : '',
                         'delete' => auth()->user()->can('team delete') ? routePut('teams.delete', ['id' => encrypt($user->id)]) : '',
@@ -119,37 +119,58 @@ public function showLeads($id, Request $request)
         return view('Teams.form', ['heading' => "Create", 'title' => "Create Team Member", 'user' => $subAdmin]);
     }
 
+   
     public function save()
     {
-        // dd(request()->all());
         try {
             $rules = [
                 'first_name' => 'required',
                 'last_name' => 'required',
-                'email' => 'required',
+                'email' => 'required|email',
                 'phone' => 'required|digits:10',
                 'admin_title' => 'required',
                 'service_pincode' => 'required|digits:6'
             ];
+    
+            // Add password validation only for new records
             if (!useId(request()->get('id'))) {
-                $rules = [
-                    'password' => 'required|string|confirmed|min:6'
-                ];
+                $rules['password'] = 'required|string|confirmed|min:6';
             }
+    
             $messages = [
                 'first_name.required' => "Please Provide First Name",
                 'last_name.required' => "Please Provide Last Name",
                 'email.required' => "Please Provide Email",
+                'email.email' => "Please Provide a Valid Email Address",
                 'phone.required' => "Please provide phone number",
-                'phone.digits' => "Phone number should be exact :digits",
+                'phone.digits' => "Phone number should be exactly :digits digits",
                 'admin_title.required' => "Please select Title",
                 'service_pincode.required' => 'Please provide service area pincode',
-                'service_pincode.digits' => "Service area code should be :digits"
+                'service_pincode.digits' => "Service area code should be :digits digits"
             ];
+    
             $validator = validate(request()->all(), $rules, $messages);
+    
             if ($validator) {
                 return $this->resp(0, $validator[0], [], 500);
             }
+    
+            $id = useId(request()->get('id'));
+            $isNewRecord = !$id;
+    
+            // Check if email and phone number already exist only for new records
+            if ($isNewRecord) {
+                $emailExists = User::where('email', request()->get('email'))->exists();
+                if ($emailExists) {
+                    return $this->resp(0, "This email is already registered. Please provide other email ", [], 500);
+                }
+    
+                $phoneExists = User::where('phone_number', request()->get('phone'))->exists();
+                if ($phoneExists) {
+                    return $this->resp(0, "This phone number is already registered. Please provide a new mobile number", [], 500);
+                }
+            }
+    
             $status = userLogin()->hasRole('admin') ? 1 : 0;
             $subadminData = [
                 'first_name' => request()->get('first_name'),
@@ -159,10 +180,13 @@ public function showLeads($id, Request $request)
                 'title' => request()->get('admin_title'),
                 'service_pincode' => request()->get('service_pincode')
             ];
-            if (useId(request()->get('id'))) {
-                User::where("id", useId(request()->get('id')))->update($subadminData);
+    
+            if ($id) {
+                // Update existing record
+                User::where("id", $id)->update($subadminData);
                 return $this->resp(1, "Team Member Updated successfully", ['url' => routePut('teams.list')]);
             } else {
+                // Create new record
                 $subadminData['ti_status'] = $status;
                 $subadminData['password'] = Hash::make(request()->get('password'));
                 $subadmin = User::create($subadminData);
@@ -172,11 +196,11 @@ public function showLeads($id, Request $request)
                 }
             }
         } catch (\Throwable $th) {
-            // return $this->resp(0,"something went wrong. try again later",[],500);
             return $this->resp(0, $th->getMessage(), [], 500);
         }
     }
-
+    
+    
     public function edit($id)
     {
         try {

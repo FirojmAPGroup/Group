@@ -41,11 +41,18 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label class="col-sm-4 col-form-label">Location</label>
+                    <label class="col-sm-4 col-form-label">Location Latitude</label>
                     <div class="col-sm-8">
-                        <p class="form-control-plaintext" style="color: #524c4c">{{ $lead->leads->latitude ?? 'N/A' }}</p>
+                        <p class="form-control-plaintext" style="color: #524c4c">{{ $lead->latitude ?? 'N/A' }}</p>
                     </div>
                 </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label">Location Longitude</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" style="color: #524c4c">{{ $lead->longitude ?? 'N/A' }}</p>
+                    </div>
+                </div>
+                
                 <div class="form-group row">
                     <label class="col-sm-4 col-form-label">Assigned Date</label>
                     <div class="col-sm-8">
@@ -61,24 +68,46 @@
                 <div class="form-group row">
                     <label class="col-sm-4 col-form-label">Remark</label>
                     <div class="col-sm-8">
-                        <p class="form-control-plaintext" style="color: #524c4c">{{ $lead->remark }}</p>
+                        <p class="form-control-plaintext" style="color: #524c4c">{{ $lead->remark ?? 'N/A' }}</p>
                     </div>
                 </div>
                 <div class="form-group row">
                     <label class="col-sm-4 col-form-label">Selfie</label>
-                    <div class="col-sm-8" id="selfieContainer">
-                        <img src="{{ asset('/uploads/selfie/' . $lead->selfie) }}" alt="Selfie Image"
-                        style="max-width: 100%;color:#524c4c" height="200px"  onerror="showImageNotFoundMessage()" />
+                    <div class="col-sm-8" id="selfieContainer" >
+                        <img id="selfieImage" src="{{ asset('/uploads/selfie/' . $lead->selfie) }}" alt="Selfie Image"
+                            style="max-width: 100%; color: #524c4c; height: 200px; display: none;" />
+                        <p id="imageNotAvailable" style="color: red; text-align: start; display: none;">Image not available</p>
                     </div>
                 </div>
                 <script>
-                    function showImageNotFoundMessage() {
-                        var container = document.getElementById('selfieContainer');
-                        container.innerHTML = 'Image not available';
-                        container.style.textAlign = 'center';
-                        container.style.color = 'red';
-                    }
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var selfieImage = document.getElementById('selfieImage');
+                        var imageNotAvailable = document.getElementById('imageNotAvailable');
+                
+                        selfieImage.onload = function () {
+                            // Image loaded successfully
+                            selfieImage.style.display = 'block';
+                            imageNotAvailable.style.display = 'none';
+                        };
+                
+                        selfieImage.onerror = function () {
+                            // Image failed to load
+                            selfieImage.style.display = 'none';
+                            imageNotAvailable.style.display = 'block';
+                        };
+                
+                        // Check if image is loaded successfully
+                        if (selfieImage.complete && selfieImage.naturalWidth !== 0) {
+                            selfieImage.style.display = 'block';
+                            imageNotAvailable.style.display = 'none';
+                        } else {
+                            selfieImage.style.display = 'none';
+                            imageNotAvailable.style.display = 'block';
+                        }
+                    });
                 </script>
+                
+                
             </div>
         </div>
     </div>

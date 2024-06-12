@@ -54,7 +54,7 @@
                         Select Interval
                     </button>
                     <div class="dropdown-menu" aria-labelledby="intervalDropdown">
-                        @foreach(['today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'all' => 'All Data'] as $key => $value)
+                        @foreach([ 'week' => 'This Week', 'month' => 'This Month', 'all' => 'All Data'] as $key => $value)
                             <a class="dropdown-item" href="#" data-interval="{{ $key }}" onclick="fetchChartData('{{ $key }}')">{{ $value }}</a>
                         @endforeach
                     </div>
@@ -121,7 +121,7 @@
 @endpush
 
 @push('script')
-<script>
+{{-- <script>
     $(document).ready(function() {
         var dtTable;
 
@@ -253,5 +253,142 @@
         }
         document.getElementById('selectedInterval').innerText = `Selected Interval: ${intervalText}`;
     }
+</script> --}}
+
+@push('script')
+<script>
+    $(document).ready(function() {
+        var dtTable;
+
+        dtTable = $('#{{ $table }}').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '{{ route("app.todayVisits") }}',
+                type: "GET",
+                data: { member_id: '' }
+            },
+            paging: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: true,
+            responsive: true
+        });
+
+        function reloadDataTable(memberId) {
+            dtTable.ajax.url('{{ route("app.todayVisits") }}' + '?member_id=' + memberId).load();
+        }
+
+        function updateSelectedMemberName(memberName) {
+            $('#teamMemberDropdown').html(memberName);
+        }
+
+        $('.dropdown-item.team-member').click(function(e) {
+            e.preventDefault();
+            var memberId = $(this).data('member-id');
+            var memberName = $(this).text();
+            updateSelectedMemberName(memberName);
+            reloadDataTable(memberId);
+        });
+
+        fetchChartData('week'); // Changed from 'today' to 'week'
+    });
+
+    function fetchChartData(interval) {
+        $.ajax({
+            url: "{{ route('app.dashboard') }}",
+            type: 'GET',
+            data: { interval: interval },
+            success: function(response) {
+                updateChart(response);
+                updateSelectedInterval(interval);
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
+    }
+
+    function updateChart(data) {
+        var barChart = {
+            labels: data.labels,
+            series: [
+                data.totalVisits,
+                data.completedVisits,
+                data.pendingVisits,
+                data.unassignedVisits
+            ]
+        };
+
+        var barOptions = {
+            seriesBarDistance: 10,
+            axisY: {
+                onlyInteger: true,
+                offset: 20,
+                labelInterpolationFnc: function(value) {
+                    return value;
+                }
+            }
+        };
+
+        var barResponsiveOptions = [
+            ['screen and (max-width: 640px)', {
+                seriesBarDistance: 5,
+                axisX: {
+                    labelInterpolationFnc: function(value) {
+                        return value.split(' ')[0];
+                    }
+                }
+            }]
+        ];
+
+        new Chartist.Bar('.ct-bar-chart', barChart, barOptions, barResponsiveOptions);
+
+        updateLegend();
+    }
+
+    function updateLegend() {
+        var legend = document.getElementById('chartLegend');
+        legend.innerHTML = '';
+
+        var legendItems = [
+            { name: 'Total Visits', color: '#3b5998' },
+            { name: 'Completed Visits', color: '#1da1f2' },
+            { name: 'Pending Visits', color: '#ff0000' },
+            { name: 'Unassigned Leads', color: '#d17905' }
+        ];
+
+        legendItems.forEach(function(item) {
+            var div = document.createElement('div');
+            div.innerHTML = `
+                <span class="legend-marker" style="background-color: ${item.color}; display: inline-block; width: 12px; height: 12px; margin-right: 5px;"></span>
+                <span class="legend-text">${item.name}</span>
+            `;
+            legend.appendChild(div);
+        });
+    }
+
+    function updateSelectedInterval(interval) {
+        var intervalText = '';
+        switch (interval) {
+            case 'today':
+                intervalText = 'Today';
+                break;
+            case 'week':
+                intervalText = 'This Week';
+                break;
+            case 'month':
+                intervalText = 'This Month';
+                break;
+            case 'all':
+                intervalText = 'All Data';
+                break;
+        }
+        document.getElementById('selectedInterval').innerText = `Selected Interval: ${intervalText}`;
+    }
 </script>
+@endpush
+
 @endpush

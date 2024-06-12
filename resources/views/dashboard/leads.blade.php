@@ -42,12 +42,12 @@
                     <table id="{{ $table }}" class="display" style="width:100%">
                         <thead>
                             <tr>
-                                <th data-data="name">Company Name</th>
-                                <th data-data="owner_full_name"> Full Name</th>
-                                <th data-data="owner_number"> Number</th>
-                                <th data-data="ti_status"></th>
-                                <th data-data="user_full_name"> Full Name</th>
-                                <th data-data="details" data-sortable="false">Details</th>
+                                <th data-data="name" style="width: 20%;">Company Name</th>
+                                <th data-data="owner_full_name" style="width: 20%;"> Full Name</th>
+                                <th data-data="owner_number" style="width: 15%;"> Number</th>
+                                <th data-data="ti_status" style="width: 15%;">Status</th>
+                                <th data-data="user_full_name" style="width: 20%;">Team Full Name</th>
+                                <th data-data="details" data-sortable="false" style="width: 10%;">Details</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -131,10 +131,11 @@
             $('td[data-data="owner_full_name"]').each(function () {
                 var text = $(this).text();
                 if (text.length > 20) {
-                    $(this).text(text.substring(0, 10) + '...');
+                    $(this).text(text.substring(0, 20) + '...'); // Adjusted to show up to 20 characters
                 }
             });
         });
+
     });
 
 </script>

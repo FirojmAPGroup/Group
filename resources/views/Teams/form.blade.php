@@ -145,8 +145,6 @@
             });
         });
     });
-    document.querySelector('form').addEventListener('submit', function() {
-    this.querySelector('button[type="submit"]').disabled = true;
-});
+   
 </script>
 @endpush

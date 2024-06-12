@@ -15,7 +15,7 @@ use App\Notifications\NewLeadNotification;
 
 class LeadsController extends Controller
 {
-  
+
     public function getPendingLeads(Request $request)
     {
         $user = Auth::guard('api')->user();
@@ -152,7 +152,7 @@ class LeadsController extends Controller
                 'lead_date' => $leadDate // New field indicating 'today', 'yesterday', 'last_week', or 'other'
             ];
         }
-    
+
         return response()->json([
             'code' => 200,
             'data' => $Pending_leads_data,
@@ -171,7 +171,7 @@ class LeadsController extends Controller
         ]);
     }
 
-  
+
     public function getDoneLeads(Request $request)
     {
         $user = Auth::guard('api')->user();
@@ -304,7 +304,7 @@ class LeadsController extends Controller
             ];
         }
 
-    
+
         return response()->json([
             'code' => 200,
             'data' => $completed_leads_data,
@@ -326,12 +326,21 @@ class LeadsController extends Controller
     public function todayLeads(Request $request)
     {
         try {
+            // Get the authenticated user
             $user = User::find(Auth::guard('api')->user()->id);
+
+
             $userLatitude = $user->latitude;
             $userLongitude = $user->longitude;
 
-            // Fetch leads created today
-            $leads = Leads::whereDate('visit_date', today())->get();
+            // Set the timezone explicitly
+            $timeZone = config('app.timezone');
+            $currentDate = Carbon::now();
+
+            // Fetch leads created today and belonging to the authenticated user
+            $leads = Leads::where('team_id', $user->id)
+                ->whereDate('created_at', $currentDate)
+                ->get();
 
             $leadDistances = [];
 
@@ -349,6 +358,7 @@ class LeadsController extends Controller
                 ];
             }
 
+            // Sort leads by distance
             usort($leadDistances, function ($a, $b) {
                 return $a['distance'] <=> $b['distance'];
             });
@@ -358,7 +368,6 @@ class LeadsController extends Controller
             foreach ($leadDistances as $distanceInfo) {
                 $lead = $distanceInfo['lead'];
                 $business = $lead->business;
-                $fullName = ($user->first_name ?? 'N/A') . ' ' . ($user->last_name ?? 'N/A');
                 $data[] = [
                     'user_id' => $user->id ?? 'N/A',
                     'first_name' => $user->first_name ?? 'N/A',
@@ -366,8 +375,8 @@ class LeadsController extends Controller
                     'email' => $user->email ?? 'N/A',
                     'phone_number' => $user->phone_number ?? 'N/A',
                     'distance' => round($distanceInfo['distance'], 2),
-                    'lead_id' => $lead->id ?? "N/A",
-                    'visit_date' => $lead->visit_date ?? "N/A",
+                    'lead_id' => $lead->id ?? 'N/A',
+                    'visit_date' => $lead->visit_date ?? 'N/A',
                     'business_id' => $business->id ?? 'N/A',
                     'Name' => $business->name ?? 'N/A',
                     'lead_first_name' => $business->owner_first_name ?? 'N/A',
@@ -376,7 +385,7 @@ class LeadsController extends Controller
                     'lead_number' => $business->owner_number ?? 'N/A',
                     'pincode' => $business->pincode ?? 'N/A',
                     'lead_latitude' => $business->latitude ?? 'N/A',
-                    'lead_longtitue' => $business->longitude ?? 'N/A',
+                    'lead_longitude' => $business->longitude ?? 'N/A',
                 ];
             }
 
@@ -393,6 +402,7 @@ class LeadsController extends Controller
             ]);
         }
     }
+
 
 
     private function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371)
@@ -446,38 +456,38 @@ class LeadsController extends Controller
     //     }
 
     // }
-  
+
 
     public function leadReport()
     {
         try {
             $user = User::find(Auth::guard('api')->user()->id);
-    
+
             // Check if status parameter is provided
             $statusProvided = request()->has('status');
             $status = request()->get('status');
-    
+
             // Calculate the start and end dates for each week
             $currentWeekStart = Carbon::now()->startOfWeek();
             $currentWeekEnd = Carbon::now();
-    
+
             $lastWeek1Start = $currentWeekStart->copy()->subWeek();
             $lastWeek1End = $currentWeekStart->copy()->subSecond();
-    
+
             $lastWeek2Start = $lastWeek1Start->copy()->subWeek();
             $lastWeek2End = $lastWeek1Start->copy()->subSecond();
-    
+
             $lastWeek3Start = $lastWeek2Start->copy()->subWeek();
             $lastWeek3End = $lastWeek2Start->copy()->subSecond();
-    
+
             // Build the query based on status and user
             $query = Leads::selectRaw('DATE(created_at) as date')
                 ->selectRaw('SUM(CASE WHEN ti_status = 2 THEN 1 ELSE 0 END) AS pending_count')
                 ->selectRaw('SUM(CASE WHEN ti_status = 1 THEN 1 ELSE 0 END) AS completed_count')
-                ->whereBetween('updated_at', [$lastWeek3Start, $currentWeekEnd])
+                ->whereBetween('created_at', [$lastWeek3Start, $currentWeekEnd])
                 ->where('team_id', $user->id) // Add condition for logged-in user
                 ->groupBy('date'); // Group by date
-    
+
             // If status is provided, filter by status
             if ($statusProvided) {
                 if ($status == "pending") {
@@ -486,9 +496,9 @@ class LeadsController extends Controller
                     $query->where('ti_status', 1);
                 }
             }
-    
+
             $records = $query->get();
-    
+
             // Helper function to get counts for a specific week
             $getCountsForWeek = function ($start, $end) use ($records) {
                 $dateRange = collect(Carbon::parse($start)->daysUntil($end)->toArray());
@@ -502,7 +512,7 @@ class LeadsController extends Controller
                     ];
                 });
             };
-    
+
             // Get counts for each week
             $data = [
                 'last_week_3' => $getCountsForWeek($lastWeek3Start, $lastWeek3End),
@@ -510,7 +520,7 @@ class LeadsController extends Controller
                 'last_week_1' => $getCountsForWeek($lastWeek1Start, $lastWeek1End),
                 'current_week' => $getCountsForWeek($currentWeekStart, $currentWeekEnd),
             ];
-    
+
             return response()->json([
                 'code' => 200,
                 'message' => 'Chart Data found successfully',
@@ -524,7 +534,7 @@ class LeadsController extends Controller
             ]);
         }
     }
-    
+
     public function createLead()
     {
         try {
@@ -567,7 +577,7 @@ class LeadsController extends Controller
                 'longitude' => request()->get('longitude') ?? 0,  // Default value
             ];
             $business = Business::create($leadData);
-          
+
             $users = User::find(Auth::guard('api')->user()->id);
 
             $data = [

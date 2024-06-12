@@ -82,69 +82,92 @@ class SubAdminController extends Controller
         return view('SubAdmin.form',['heading'=>"Create",'title'=>"Create Sub Admin",'permission'=>$permission,'user'=>$subAdmin,'selectedPermission'=>$selectedPermission]);
     }
 
-    public function save(){
+    public function save()
+    {
         try {
             $rules = [
-                'first_name'=>'required',
-                'last_name'=>'required',
-                'email'=>'required|email',
-                'phone'=>'required|digits:10',
-                'admin_title'=>'required',
-                'permission'=>'required'
+                'first_name' => 'required',
+                'last_name' => 'required',
+                'email' => 'required|email',
+                'phone' => 'required|digits:10',
+                'admin_title' => 'required',
+                'permission' => 'required'
             ];
-            if(!useId(request()->get('id'))){
-                $rules = [
-                    'password'=>'required|string|confirmed|min:6'
-                ];
+    
+            // Add password validation only for new records
+            if (!useId(request()->get('id'))) {
+                $rules['password'] = 'required|string|confirmed|min:6';
             }
+    
             $messages = [
-                'first_name.required'=>"Please Provide First Name",
-                'last_name.required'=>"Please Provide Last Name",
-                'email.required'=>"Please Provide Email",
-                'email.email'=>"please provide valid email",
-                'phone.digits'=>"phone number should be exact :digits number",
-                'phone.required'=>"Please provide phone number",
-                'admin_title.required'=>"Please select Title",
-                'permission.required'=>"Please Select Permisssion"
+                'first_name.required' => "Please Provide First Name",
+                'last_name.required' => "Please Provide Last Name",
+                'email.required' => "Please Provide Email",
+                'email.email' => "Please provide valid email",
+                'phone.digits' => "Phone number should be exactly :digits digits",
+                'phone.required' => "Please provide phone number",
+                'admin_title.required' => "Please select Title",
+                'permission.required' => "Please Select Permission"
             ];
-            
+    
             $validator = validate(request()->all(), $rules, $messages);
-            if($validator){
-                return $this->resp(0,$validator[0],[],500);
+    
+            if ($validator) {
+                return $this->resp(0, $validator[0], [], 500);
             }
-            $status = userLogin()->hasRole('admin') ? 1 :0;
-            $subadminData = [
-                'first_name'=>request()->get('first_name'),
-                'last_name'=>request()->get('last_name'),
-                'email'=>request()->get('email'),
-                'phone_number'=>request()->get('phone'),
-                'title'=>request()->get('admin_title'),
-                'ti_status'=>$status,
-            ];
-            if(useId(request()->get('id'))){
-
-                $subadmin = User::find(useId(request()->get('id')));
-                $subadminData['ti_status'] =$subadmin->ti_status;
-                User::where("id",useId(request()->get('id')))->update($subadminData);
-                $subadmin->syncPermissions(request()->get('permission'));
-
-                return $this->resp(1,"Subadmin Updated successfully",['url'=>routePut('subadmin.list')]);
-            } else {
-                $password = request()->get('password');
-                $subadminData['password']=Hash::make($password);
-                $subadmin = User::create($subadminData);
-                if($subadmin){
-                    $subadmin->assignRole('sub admin');
-                    $subadmin->givePermissionTo(request()->get('permission'));
-                    Event::dispatch(new SubAdminCreated($subadmin->getId(),$password));
-                    return $this->resp(1,"Subadmin Created successfully",['url'=>routePut('subadmin.list')]);
+    
+            $id = useId(request()->get('id'));
+            $isNewRecord = !$id;
+    
+            // Check if email and phone number already exist only for new records
+            if ($isNewRecord) {
+                $emailExists = User::where('email', request()->get('email'))->exists();
+                if ($emailExists) {
+                    return $this->resp(0, "This email is already registered", [], 500);
+                }
+    
+                $phoneExists = User::where('phone_number', request()->get('phone'))->exists();
+                if ($phoneExists) {
+                    return $this->resp(0, "This phone number is already registered", [], 500);
                 }
             }
-
+    
+            $status = userLogin()->hasRole('admin') ? 1 : 0;
+            $subadminData = [
+                'first_name' => request()->get('first_name'),
+                'last_name' => request()->get('last_name'),
+                'email' => request()->get('email'),
+                'phone_number' => request()->get('phone'),
+                'title' => request()->get('admin_title'),
+                'ti_status' => $status,
+            ];
+    
+            if ($id) {
+                // Update existing record
+                $subadmin = User::find($id);
+                $subadminData['ti_status'] = $subadmin->ti_status;
+                User::where("id", $id)->update($subadminData);
+                $subadmin->syncPermissions(request()->get('permission'));
+    
+                return $this->resp(1, "Subadmin Updated successfully", ['url' => routePut('subadmin.list')]);
+            } else {
+                // Create new record
+                $password = request()->get('password');
+                $subadminData['password'] = Hash::make($password);
+                $subadmin = User::create($subadminData);
+                if ($subadmin) {
+                    $subadmin->assignRole('sub admin');
+                    $subadmin->givePermissionTo(request()->get('permission'));
+                    Event::dispatch(new SubAdminCreated($subadmin->getId(), $password));
+                    return $this->resp(1, "Subadmin Created successfully", ['url' => routePut('subadmin.list')]);
+                }
+            }
+    
         } catch (\Throwable $th) {
-            return $this->resp(0,$th->getMessage(),[],500);
+            return $this->resp(0, $th->getMessage(), [], 500);
         }
     }
+    
 
     public function edit($id){
         try {
