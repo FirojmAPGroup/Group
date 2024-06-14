@@ -32,49 +32,109 @@ class LeadsController extends Controller
     }
    
 
-    public function todayVisit(Request $request)
+//     public function todayVisit(Request $request)
+// {
+//     try {
+//         // Fetch today's date
+//         $today = now()->toDateString();
+
+//         // Fetch the member ID from the request
+//         $memberId = $request->input('member_id');
+
+//         $leadsQuery = Leads::whereIn('ti_status', [1, 2, 3, 4, 5])
+//             ->where('visit_date', $today);
+
+//         // Apply search criteria
+//         if ($srch = DataTableHelper::search()) {
+//             $leadsQuery->where(function ($query) use ($srch) {
+//                 foreach (['name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number', 'pincode', 'city', 'state', 'country', 'area'] as $k => $v) {
+//                     if (!$k) $query->where($v, 'like', '%' . $srch . '%');
+//                     else $query->orWhere($v, 'like', '%' . $srch . '%');
+//                 }
+//             });
+//         }
+
+//         // Filter leads by member ID if provided
+//         if ($memberId) {
+//             $leadsQuery->where('user_id', $memberId);
+//         }
+
+//         // Get the filtered leads
+//         $leads = $leadsQuery->get();
+
+//         // Process the leads data
+//         $data = [];
+//         // Iterate over each lead to process and collect the required information
+//         foreach ($leads as $lead) {
+//             if ($lead->user && $lead->business) {
+//                 // Calculate the distance between user and business
+//                 $distance = $this->haversineGreatCircleDistance(
+//                     $lead->user->latitude,
+//                     $lead->user->longitude,
+//                     $lead->business->latitude,
+//                     $lead->business->longitude
+//                 );
+            
+//                 $data[] = [
+//                     'first_name' => $lead->user->first_name,
+//                     'last_name' => $lead->user->last_name,
+//                     'phone_number' => $lead->user->phone_number,
+//                     'distance' => round($distance, 2),
+//                     'name' => $lead->business->name,
+//                     'ti_status' => $lead->leadStatus(),
+//                     'lead_first_name' => $lead->business->owner_first_name,
+//                     'lead_last_name' => $lead->business->owner_last_name,
+//                     'lead_email' => $lead->business->owner_email,
+//                     'lead_number' => $lead->business->owner_number,
+//                     'details' => '<a href="' . route('teams.detail', ['id' => $lead->id]) . '">View Details</a>'
+//                 ];
+//             }
+//         }
+
+//         // Sort the data by distance in ascending order
+//         usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
+
+//         // Get the count of the data
+//         $count = count($data);
+
+//         // Return the JSON response with the collected data
+//         return response()->json([
+//             'draw' => intval($request->input('draw')),
+//             'recordsTotal' => $count,
+//             'recordsFiltered' => $count,
+//             'data' => $data,
+//             'leads' => $leads, // Pass the leads collection
+//         ]);
+//     } catch (\Throwable $th) {
+//         // Return error message if any exception occurs
+//         return response()->json(['error' => $th->getMessage()], 500);
+//     }
+// }
+public function todayVisit(Request $request)
 {
     try {
-        // Fetch today's date
         $today = now()->toDateString();
-
-        // Fetch the member ID from the request
         $memberId = $request->input('member_id');
 
         $leadsQuery = Leads::whereIn('ti_status', [1, 2, 3, 4, 5])
             ->where('visit_date', $today);
 
-        // Apply search criteria
-        if ($srch = DataTableHelper::search()) {
-            $leadsQuery->where(function ($query) use ($srch) {
-                foreach (['name', 'owner_first_name', 'owner_last_name', 'owner_email', 'owner_number', 'pincode', 'city', 'state', 'country', 'area'] as $k => $v) {
-                    if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-                    else $query->orWhere($v, 'like', '%' . $srch . '%');
-                }
-            });
-        }
-
-        // Filter leads by member ID if provided
-        if ($memberId) {
+        if ($memberId && $memberId !== 'all') {
             $leadsQuery->where('user_id', $memberId);
         }
 
-        // Get the filtered leads
         $leads = $leadsQuery->get();
-
-        // Process the leads data
         $data = [];
-        // Iterate over each lead to process and collect the required information
+
         foreach ($leads as $lead) {
             if ($lead->user && $lead->business) {
-                // Calculate the distance between user and business
                 $distance = $this->haversineGreatCircleDistance(
                     $lead->user->latitude,
                     $lead->user->longitude,
                     $lead->business->latitude,
                     $lead->business->longitude
                 );
-            
+
                 $data[] = [
                     'first_name' => $lead->user->first_name,
                     'last_name' => $lead->user->last_name,
@@ -84,32 +144,26 @@ class LeadsController extends Controller
                     'ti_status' => $lead->leadStatus(),
                     'lead_first_name' => $lead->business->owner_first_name,
                     'lead_last_name' => $lead->business->owner_last_name,
-                    'lead_email' => $lead->business->owner_email,
                     'lead_number' => $lead->business->owner_number,
                     'details' => '<a href="' . route('teams.detail', ['id' => $lead->id]) . '">View Details</a>'
                 ];
             }
         }
 
-        // Sort the data by distance in ascending order
         usort($data, fn($a, $b) => $a['distance'] <=> $b['distance']);
-
-        // Get the count of the data
         $count = count($data);
 
-        // Return the JSON response with the collected data
         return response()->json([
             'draw' => intval($request->input('draw')),
             'recordsTotal' => $count,
             'recordsFiltered' => $count,
-            'data' => $data,
-            'leads' => $leads, // Pass the leads collection
+            'data' => $data
         ]);
     } catch (\Throwable $th) {
-        // Return error message if any exception occurs
         return response()->json(['error' => $th->getMessage()], 500);
     }
 }
+
 
     public function view($id){
         $useID = useId($id);
@@ -304,7 +358,7 @@ class LeadsController extends Controller
                 }
             }
     
-            $status = $business ? $business->ti_status : 0;
+            $status = $isNewBusiness ? 0 : $business->ti_status;
     
             $business->name = request()->get('name');
             $business->owner_first_name = request()->get('owner_first_name');
