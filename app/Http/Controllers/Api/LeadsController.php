@@ -340,6 +340,7 @@ class LeadsController extends Controller
             // Fetch leads created today and belonging to the authenticated user
             $leads = Leads::where('team_id', $user->id)
                 ->whereDate('created_at', $currentDate)
+                ->where('ti_status', '!=', 1) // Exclude leads where ti_status = 1
                 ->get();
 
             $leadDistances = [];
@@ -606,7 +607,7 @@ class LeadsController extends Controller
     {
         try {
             $validator = Validator::make(request()->all(), [
-                'remarks' => '|max:100',
+                'remarks' => 'required|max:100',
                 'selfie' => 'required|mimes:png,jpg',
                 'latitude' => 'required',
                 'longitude' => 'required',

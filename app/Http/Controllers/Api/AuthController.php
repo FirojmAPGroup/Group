@@ -537,19 +537,23 @@ class AuthController extends Controller
     //         ]);
     //     }
     // }
-    public function updateProfile()
+    public function updateProfile(Request $request)
     {
         try {
-            $validator = Validator::make(request()->all(), [
+            $validator = Validator::make($request->all(), [
                 'first_name' => 'required',
                 'last_name' => 'required',
-                'birth_date' => 'required',
+                'birth_date' => 'required|date',
                 'gender' => 'required',
+                'profile_image' => 'image|mimes:jpeg,png,jpg,gif,svg'
             ], [
-                'first_name.required' => 'please provide first name',
-                'last_name.required' => 'please provide last name',
-                'birth_date.required' => 'please provide birthdate',
-                'gender.required' => 'please provide gender',
+                'first_name.required' => 'Please provide first name',
+                'last_name.required' => 'Please provide last name',
+                'birth_date.required' => 'Please provide birthdate',
+                'birth_date.date' => 'Please provide a valid birthdate',
+                'gender.required' => 'Please provide gender',
+                'profile_image.image' => 'Please provide a valid image',
+                'profile_image.mimes' => 'Image must be a file of type: jpeg, png, jpg, gif, svg',
             ]);
     
             if ($validator->fails()) {
@@ -560,28 +564,31 @@ class AuthController extends Controller
                 ]);
             }
     
-            $user = User::find(Auth::guard('api')->user()->id);
+            $user = Auth::guard('api')->user();
             if ($user) {
-                $user->first_name = request()->get('first_name');
-                $user->last_name = request()->get('last_name');
-                $user->gender = request()->get('gender');
-                $user->birth_date = request()->get('birth_date');
+                $user->first_name = $request->get('first_name');
+                $user->last_name = $request->get('last_name');
+                $user->gender = $request->get('gender');
+                $user->birth_date = $request->get('birth_date');
     
-                if (request()->hasFile('profile_image')) {
-                    // Delete old image if exists
-                    if ($user->profile_image) {
-                        Storage::delete($user->profile_image);
+                if ($request->hasFile('profile_image')) {
+                    // Delete the old profile image if it exists
+                    if ($user->profile_image && file_exists(public_path($user->profile_image))) {
+                        unlink(public_path($user->profile_image));
                     }
     
-                    // Store the new image
-                    $path = request()->file('profile_image')->store('profile_images');
-                    $user->profile_image = $path;
+                    $file = $request->file('profile_image');
+                    $filename = time() . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('profile_images'), $filename);
+                    
+                    // Save the new filename to the user's profile_image field
+                    $user->profile_image = 'profile_images/' . $filename;
                 }
     
                 $user->save();
     
                 // Generate the profile image URL
-                $profileImageUrl = url('storage/' . $user->profile_image);
+                $profileImageUrl = $user->getProfileImage();
     
                 return response()->json([
                     'code' => 200,
@@ -600,12 +607,13 @@ class AuthController extends Controller
             }
         } catch (\Throwable $th) {
             return response()->json([
-                'code' => $th->getCode(),
+                'code' => 500,
                 'message' => $th->getMessage(),
                 'data' => []
             ]);
         }
     }
+    
     
     
 //   public function userProfile()
@@ -639,13 +647,8 @@ public function userProfile()
         $user = Auth::guard('api')->user();
         $userData = $user->toArray();
         
-        // Check if the user has a profile image
-        if ($user->profile_image) {
-            // Generate the relative URL for the profile image
-            $userData['profile_image_url'] = '/storage/' . $user->profile_image;
-        } else {
-            $userData['profile_image_url'] = null; // Or provide a default image URL if necessary
-        }
+        // Get the profile image URL using the model method
+        $userData['profile_image_url'] = $user->getProfileImage();
 
         return response()->json([
             'code' => 200,
@@ -657,12 +660,13 @@ public function userProfile()
         \Log::error('Error fetching user profile: ' . $th->getMessage());
         
         return response()->json([
-            'code' => $th->getCode(),
+            'code' => 500,
             'message' => $th->getMessage(),
             'data' => []
         ]);
     }
 }
+
 
 
 

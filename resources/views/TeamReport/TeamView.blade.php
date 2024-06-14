@@ -40,7 +40,7 @@
         <form action="{{ route('teams.view') }}" method="GET">
             <input type="hidden" name="filter" value="conversation_wise" class="form-control" style="width: 100px; display: inline-block; margin-right: 10px;margin-left:10px">
             <select name="conversation_type" class="btn btn-secondary">
-                <option value="" >Select Conversation Type</option>
+                <option value="" >Total</option>
                 <option value="pending" {{ isset($selectedConversationType) && $selectedConversationType == 'pending' ? 'selected' : '' }}>Pending</option>
                 <option value="complete" {{ isset($selectedConversationType) && $selectedConversationType == 'complete' ? 'selected' : '' }}>Complete</option>
             </select>
