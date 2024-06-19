@@ -42,7 +42,7 @@ class Leads extends Model
 
 
     public static function pendingVisit(){
-        return self::where('ti_status',2)->count();
+        return self::where('ti_status','!=',1)->count();
     }
     public static function unassignedVisit(){
         return business::where('ti_status',0)->count();

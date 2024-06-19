@@ -114,9 +114,9 @@ public function todayVisit(Request $request)
 {
     try {
         $today = now()->toDateString();
-        $memberId = $request->input('member_id');
+        $memberId = $request->input('member_id', 'all');
 
-        $leadsQuery = Leads::whereIn('ti_status', [1, 2, 3, 4, 5])
+        $leadsQuery = Leads::whereIn('ti_status', [1, 2, 3, 4, 5,0])
             ->where('visit_date', $today);
 
         if ($memberId && $memberId !== 'all') {
@@ -172,67 +172,7 @@ public function todayVisit(Request $request)
         return view('leads.view',['heading'=>$heading,'business'=>$business]);
 
     }
-    // public function loadList(){
-    //     try {
-
-    //     $leadsQuery = Leads::with(['business' => function ($query) {
-    //         $query->select('id', 'owner_first_name', 'owner_last_name', 'name', 'owner_email');
-    //     }, 'user' => function ($query) {
-    //         $query->select('id', 'first_name', 'last_name', 'email');
-    //     }])->get();
-
-	// 		$q = Business::query();
-	// 		if ($srch = DataTableHelper::search()) {
-	// 			$q = $q->where(function ($query) use ($srch) {
-	// 				foreach (['name', 'owner_first_name','owner_last_name', 'owner_email','owner_number','pincode','city','state','country','area'] as $k => $v) {
-	// 					if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-	// 					else $query->orWhere($v, 'like', '%' . $srch . '%');
-	// 				}
-	// 			});
-	// 		}
-	// 		$count = $q->count();
-
-	// 		if (DataTableHelper::sortBy() == 'ti_status') {
-	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-	// 		} else {
-	// 			$q = $q->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir());
-	// 		}
-	// 		$q = $q->skip(DataTableHelper::start())->limit(DataTableHelper::limit());
-
-	// 		$data = [];
-         
-    //         foreach ($leadsQuery as $lead) {
-    //             $assignedUser = $lead->user ? $lead->user->first_name : 'N/A'; // Name of the assigned user
-    //             $businessName = $lead->business ? $lead->business->name : 'N/A'; // Name of the associated business
-
-    //             $data[] = [
-    //                 // 'lead_id' => $lead->id,
-    //                 'name' => $businessName,
-    //                 'owner_first_name' => $lead->business ? $lead->business->owner_first_name : 'N/A',
-    //                 'owner_last_name' => $lead->business ? $lead->business->owner_last_name : 'N/A',
-    //                 'owner_email' => $lead->business ? $lead->business->owner_email : 'N/A',
-
-    //                 'team'=>$assignedUser,
-    //                 'id'=>$lead->business->id,
-	// 				'ti_status' => $lead->leadStatus(),
-	// 				// 'created_at' => putNA($single->showCreated(1)),
-    //                 'details' =>'<a href="' . route('leads.view',['id'=>encrypt($lead->getId())]) . '">View Details</a>',
-	// 				'actions' => putNA(DataTableHelper::listActions([
-    //                     'edit'=>routePut('leads.edit',['id'=>encrypt($lead->business->getId())])
-    //                 ]))
-	// 			];
-	// 		}
-
-	// 		return $this->resp(1, '', [
-	// 			'draw' => request('draw'),
-	// 			'recordsTotal' => $count,
-	// 			'recordsFiltered' => $count,
-	// 			'data' => $data
-	// 		]);
-	// 	} catch (\Throwable $th) {
-	// 		return $this->resp(0, exMessage($th), [], 500);
-	// 	}
-    // }
+ 
     public function loadList()
     {
         try {
@@ -680,7 +620,7 @@ public function todayVisit(Request $request)
     
             switch ($status) {
                 case "pending":
-                    $q->where('leads.ti_status', 2);
+                    $q->where('leads.ti_status', '!=',1);
                     break;
                 case "completed":
                     $q->where('leads.ti_status', 1);
@@ -856,8 +796,10 @@ public function todayVisit(Request $request)
                 return '<span class="badge badge-danger">Reject</span>';
             case 5:
                 return '<span class="badge badge-secondary">Assigned</span>';
+            case 0:
+                return '<span class="badge badge-danger">Meeting</span>';
             default:
-                return '<span class="badge badge-dark">Not Assign</span>';
+                return '<span class="badge badge-dark">UnAssigned</span>';
         }
     }
 }

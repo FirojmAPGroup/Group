@@ -43,6 +43,7 @@
                 <option value="" >Total</option>
                 <option value="pending" {{ isset($selectedConversationType) && $selectedConversationType == 'pending' ? 'selected' : '' }}>Pending</option>
                 <option value="complete" {{ isset($selectedConversationType) && $selectedConversationType == 'complete' ? 'selected' : '' }}>Complete</option>
+
             </select>
             <button type="submit" class="btn trust-wave-button-color">Apply</button>
         </form>
