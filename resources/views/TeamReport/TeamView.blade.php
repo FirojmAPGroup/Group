@@ -4,13 +4,14 @@
 <div class="row page-titles trust-wave mx-0">
     <div class="col-sm-6 p-md-0">
         <div class="welcome-text">
-            <h4>Team Reports</h4>
+            <h4>User Reports</h4>
         </div>
     </div>
     <div class="col-sm-6 p-md-0 d-flex justify-content-end">
-        <form action="{{ route('teams.view') }}" method="GET" id="filterForm">
+       
+        <form action="{{ route('teams.view') }}" method="GET" id="filterForm" class="d-inline" style="font-size: 15px">
             <select id="filterSelect" name="filter" onchange="this.form.submit()"
-                class="btn trust-wave-button-color btn-rounded   has-arrow">
+                class="btn" style="color:black;font-size: 15px">
                 @foreach ($Options as $key => $option)
                     <option value="{{ $key }}" {{ $selectedFilter == $key ? 'selected' : '' }}>
                         {{ $option }}</option>
@@ -24,10 +25,10 @@
                 <button type="submit" class="btn trust-wave-button-color">Apply</button>
             </form>
         @elseif ($selectedFilter == 'team_member_wise')
-        <form action="{{ route('teams.view') }}" method="GET">
+        <form action="{{ route('teams.view') }}" method="GET" class="d-inline" style="padding-left:5px;padding-right:5px;">
             <input type="hidden" name="filter" value="team_member_wise">
-            <select id="selected_member" name="selected_member" class="btn btn-secondary" onchange="this.form.submit()">
-                @php $defaultName = "Select Team Member"; @endphp
+            <select id="selected_member" name="selected_member" class="btn " style="color:black;" onchange="this.form.submit()">
+                @php $defaultName = "Select User Member"; @endphp
                 <option value="">{{ isset($selectedMemberId) ? $defaultName : $defaultName }}</option>
                 @foreach ($teamMembers as $member)
                     <option value="{{ $member->id }}" {{ isset($selectedMemberId) && $selectedMemberId == $member->id ? 'selected' : '' }}>
@@ -37,18 +38,26 @@
             </select>
         </form>
         @elseif ($selectedFilter == 'conversation_wise')
-        <form action="{{ route('teams.view') }}" method="GET">
-            <input type="hidden" name="filter" value="conversation_wise" class="form-control" style="width: 100px; display: inline-block; margin-right: 10px;margin-left:10px">
-            <select name="conversation_type" class="btn btn-secondary">
+        <form action="{{ route('teams.view') }}" method="GET"class="d-inline" style="padding-left:5px;padding-right:5px;">
+            <input type="hidden" name="filter" value="conversation_wise" class="form-control" style="width: 100px; display: inline-block; margin-right: 10px;margin-left:10px;color:black">
+            <select name="conversation_type" class="btn " style="color: black;">
                 <option value="" >Total</option>
                 <option value="pending" {{ isset($selectedConversationType) && $selectedConversationType == 'pending' ? 'selected' : '' }}>Pending</option>
-                <option value="complete" {{ isset($selectedConversationType) && $selectedConversationType == 'complete' ? 'selected' : '' }}>Complete</option>
+                <option value="complete" {{ isset($selectedConversationType) && $selectedConversationType == 'complete' ? 'selected' : '' }}>Completed</option>
 
             </select>
             <button type="submit" class="btn trust-wave-button-color">Apply</button>
         </form>
          @endif
-
+        
+       
+        <form action="{{ route('teams.export') }}" method="GET" style="font-size: 15px;padding-left:5px">
+            <input type="hidden" name="filter" value="{{ $selectedFilter }}">
+            <input type="hidden" name="selected_date" value="{{ $selectedDate ?? '' }}">
+            <input type="hidden" name="selected_member" value="{{ $selectedMemberId ?? '' }}">
+            <input type="hidden" name="conversation_type" value="{{ $selectedConversationType ?? '' }}">
+            <button type="submit" class="btn" style="color: black">Export</button>
+        </form>
     </div>
 </div>
 <div class="row">
@@ -70,8 +79,8 @@
                         <tbody>
                             @foreach($leads as $lead)
                                 <tr>
-                                    <td>{{ $lead['business_name'] }}</td>
-                                    <td>{{ $lead['owner_name'] }}</td>
+                                    <td>{{ strlen($lead['business_name']) > 20 ? substr($lead['business_name'], 0, 20) . '...' : $lead['business_name'] }}</td>
+                                    <td>{{ strlen($lead['owner_full_name']) > 20 ? substr($lead['owner_full_name'], 0, 20) . '...' : $lead['owner_full_name'] }}</td>
                                     <td>{{ $lead['assigned_to'] }}</td>
                                     <td style="padding: 10px;">{!! $lead['Status'] !!}</td>
                                     <td>{{ $lead['visit_date'] }}</td>
@@ -94,7 +103,6 @@
 @push('js')
     <script src="{{ asset('vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
     <script>
-        // Update the dropdown text with the selected team member's name
         document.getElementById('selected_member').addEventListener('change', function() {
             var selectElement = document.getElementById('selected_member');
             var selectedOption = selectElement.options[selectElement.selectedIndex];

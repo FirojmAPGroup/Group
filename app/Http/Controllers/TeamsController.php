@@ -13,6 +13,9 @@ use App\Events\SubAdminCreated;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\NewTeamNotifications;
 use App\Notifications\AccountApprovalNotification;
+use App\Exports\LeadsExport;
+use Maatwebsite\Excel\Facades\Excel;
+
 
 class TeamsController extends Controller
 {
@@ -25,7 +28,6 @@ class TeamsController extends Controller
             'urlListData' => routePut('teams.loadList'), 'table' => 'tableTeams'
         ]);
     }
-  
     public function loadList()
     {
         try {
@@ -87,39 +89,36 @@ class TeamsController extends Controller
         }
     }
 
-  
-public function showLeads($id, Request $request)
-{
-    try {
-        $user = User::with('hasLeads.business')->findOrFail($id); // Eager load leads and their business
+    public function showLeads($id, Request $request)
+    {
+        try {
+            $user = User::with('hasLeads.business')->findOrFail($id); // Eager load leads and their business
 
-        // Fetch leads with simple search and pagination
-        $query = $user->hasLeads()->with('business');
+            // Fetch leads with simple search and pagination
+            $query = $user->hasLeads()->with('business');
 
-        // If there's a search term, filter results accordingly
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->whereHas('business', function ($q) use ($search) {
-                $q->where('name', 'LIKE', '%' . $search . '%');
-            });
+            // If there's a search term, filter results accordingly
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->whereHas('business', function ($q) use ($search) {
+                    $q->where('name', 'LIKE', '%' . $search . '%');
+                });
+            }
+
+            $leads = $query->get();
+
+            return view('teams.leads', compact('user', 'leads'));
+        } catch (\Throwable $th) {
+            return redirect()->back()->withErrors(['error' => exMessage($th)]);
         }
-
-        $leads = $query->get();
-
-        return view('teams.leads', compact('user', 'leads'));
-    } catch (\Throwable $th) {
-        return redirect()->back()->withErrors(['error' => exMessage($th)]);
     }
-}
-
-
     public function create()
     {
         $subAdmin = new User();
         return view('Teams.form', ['heading' => "Create", 'title' => "Create Team Member", 'user' => $subAdmin]);
     }
 
-   
+
     public function save()
     {
         try {
@@ -131,12 +130,12 @@ public function showLeads($id, Request $request)
                 'admin_title' => 'required',
                 'service_pincode' => 'required|digits:6'
             ];
-    
+
             // Add password validation only for new records
             if (!useId(request()->get('id'))) {
                 $rules['password'] = 'required|string|confirmed|min:6';
             }
-    
+
             $messages = [
                 'first_name.required' => "Please Provide First Name",
                 'last_name.required' => "Please Provide Last Name",
@@ -148,29 +147,29 @@ public function showLeads($id, Request $request)
                 'service_pincode.required' => 'Please provide service area pincode',
                 'service_pincode.digits' => "Service area code should be :digits digits"
             ];
-    
+
             $validator = validate(request()->all(), $rules, $messages);
-    
+
             if ($validator) {
                 return $this->resp(0, $validator[0], [], 500);
             }
-    
+
             $id = useId(request()->get('id'));
             $isNewRecord = !$id;
-    
+
             // Check if email and phone number already exist only for new records
             if ($isNewRecord) {
                 $emailExists = User::where('email', request()->get('email'))->exists();
                 if ($emailExists) {
                     return $this->resp(0, "This email is already registered. Please provide other email ", [], 500);
                 }
-    
+
                 $phoneExists = User::where('phone_number', request()->get('phone'))->exists();
                 if ($phoneExists) {
                     return $this->resp(0, "This phone number is already registered. Please provide a new mobile number", [], 500);
                 }
             }
-    
+
             $status = userLogin()->hasRole('admin') ? 1 : 0;
             $subadminData = [
                 'first_name' => request()->get('first_name'),
@@ -180,7 +179,7 @@ public function showLeads($id, Request $request)
                 'title' => request()->get('admin_title'),
                 'service_pincode' => request()->get('service_pincode')
             ];
-    
+
             if ($id) {
                 // Update existing record
                 User::where("id", $id)->update($subadminData);
@@ -199,8 +198,8 @@ public function showLeads($id, Request $request)
             return $this->resp(0, $th->getMessage(), [], 500);
         }
     }
-    
-    
+
+
     public function edit($id)
     {
         try {
@@ -273,204 +272,69 @@ public function showLeads($id, Request $request)
         }
     }
 
-    //   public function TeamReport(Request $request)
-    // {
-    //     $Options = [
-    //         'total' => 'Total Visits',
-    //         'completed' => 'Completed Visits',
-    //         'pending' => 'Pending Visits',
-    //     ];
 
-    //     return view('TeamReport.TeamView', [
-    //         'title' => 'Team | Report',
-    //         'table' => 'tableReport',
-    //         'urlListData' => routePut('teams.load'), // Updated route name
-    //         'Options' => $Options,
-    //         'selectedFilter' => $request->get('filter', 'total'), // Default to 'total'
-    //     ]);
-    // }
-
-    // public function loadLists(Request $request)
-    // {
-    //     try {
-
-
-    //         $filter = $request->get('filter', 'total'); // default to showing all visits
-    //         $search = $request->input('search.value'); // Get the search query from the request
-
-    //         // Retrieve leads query without executing it
-    //         $leadsQuery = Leads::with(['business' => function ($query) {
-    //             $query->select('id', 'owner_first_name','owner_last_name', 'name', 'owner_email');
-    //         }, 
-    //         'user' => function ($query) {
-    //             $query->select('id', 'first_name', 'last_name', 'email');
-    //         }
-    //         ]
-    //         );
-    //         // $leadss=Leads::all();
-
-    //         // Apply filter based on the selected option
-    //         if ($filter == 'completed') {
-    //             $leadsQuery->where('ti_status', 1);
-    //         } elseif ($filter == 'pending') {
-    //             $leadsQuery->where('ti_status', 0);
-    //         }
-
-    //         // Apply search filter if search query is provided
-    //         if ($srch = DataTableHelper::search()) {
-    // 			$q = $leadsQuery->where(function ($query) use ($srch) {
-    // 				foreach (['email', 'phone_number', 'first_name','last_name'] as $k => $v) {
-    // 					if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-    // 					else $query->orWhere($v, 'like', '%' . $srch . '%');
-    // 				}
-    // 			});
-    // 		}
-
-    //         // Get the count of filtered leads
-    //         $count = $leadsQuery->count();
-    //         // dd($Options,$leadsQuery);
-
-    //         // Retrieve leads data after applying filters and search
-    //         $leads = $leadsQuery->get();
-
-    //         // Transform leads data
-    //         $data = $leads->map(function ($lead) {
-    //             $status = '';
-    //             switch ($lead->ti_status) {
-    //                 case 0:
-    //                     $status = 'Pending';
-    //                     break;
-    //                 case 1:
-    //                     $status = 'Completed';
-    //                     break;
-    //                 case 2:
-    //                     $status = 'Total';
-    //                     break;
-    //                 default:
-    //                     $status = 'Unknown';
-    //                     break;
-    //             }
-    //             return [
-    //                 'business_name' => $lead->business->name ?? '',
-    //                 'owner_name' => $lead->business ? $lead->business->owner_first_name . ' ' . $lead->business->owner_last_name :'No Owner Name',
-    //                 'owner_email' => $lead->business->owner_email ?? '',
-    //                 'assigned_to' => $lead->user ? $lead->user->first_name . ' ' . $lead->user->last_name : 'Not Assigned',
-    //                 'assigned_email' => $lead->user->email ?? '',
-    //                 'Status' => $status,
-    //                 'created_at' => $lead->created_at->format('Y-m-d'),
-    //                 'assigned_on' => $lead->created_at->format('Y-m-d'),
-    //             ];
-    //         });
-    //         return response()->json(['data' => $data]);
-
-    //         // return $this->resp(1, '', [
-    // 		// 	'draw' => request('draw'),
-    // 		// 	'recordsTotal' => $count,
-    // 		// 	'recordsFiltered' => $count,
-    // 		// 	'data' => $data
-    // 		// ]);
-
-    //     } catch (\Throwable $th) {
-    //         return $this->resp(0, exMessage($th), [], 500);
-    //     }
-    // }
-
-    // public function TeamReport(Request $request)
-    // {
-    //     $Options = [
-    //         'total' => 'Total Visits',
-    //         'completed' => 'Completed Visits',
-    //         'pending' => 'Pending Visits',
-    //     ];
-    //     $filter = $request->get('filter', 'total');
-    //     $search = $request->input('search.value');
-
-    //     $leadsQuery = Leads::with(['business' => function ($query) {
-    //         $query->select('id', 'owner_first_name', 'owner_last_name', 'name', 'owner_email');
-    //     }, 'user' => function ($query) {
-    //         $query->select('id', 'first_name', 'last_name', 'email');
-    //     }])->orderBy('created_at', 'desc');
-
-    //     if ($filter == 'completed') {
-    //         $leadsQuery->where('ti_status', 1);
-    //     } elseif ($filter == 'pending') {
-    //         $leadsQuery->where('ti_status', 2);
-    //     }
-
-    //     if ($search) {
-    //         $leadsQuery->where(function ($query) use ($search) {
-    //             $query->whereHas('business', function ($query) use ($search) {
-    //                 $query->where('name', 'like', "%$search%")
-    //                     ->orWhere('owner_first_name', 'like', "%$search%")
-    //                     ->orWhere('owner_last_name', 'like', "%$search%");
-    //             })
-    //                 ->orWhereHas('user', function ($query) use ($search) {
-    //                     $query->where('first_name', 'like', "%$search%")
-    //                         ->orWhere('last_name', 'like', "%$search%")
-    //                         ->orWhere('email', 'like', "%$search%");
-    //                 });
-    //         });
-    //     }
-
-    //     if ($srch = DataTableHelper::search()) {
-    //         $q = $leadsQuery->where(function ($query) use ($srch) {
-    //             foreach (['business_name', 'owner_name', 'owner_email', 'assigned_to', 'assigned_email', 'assigned_on', 'assigned_on'] as $k => $v) {
-    //                 if (!$k) $query->where($v, 'like', '%' . $srch . '%');
-    //                 else $query->orWhere($v, 'like', '%' . $srch . '%');
-    //             }
-    //         });
-    //     }
-
-    //     $count = $leadsQuery->count();
-
-    //     if (DataTableHelper::sortBy() == 'ti_status') {
-    //         $q = $leadsQuery->orderBy(DataTableHelper::sortBy(), DataTableHelper::sortDir() == 'asc' ? 'desc' : 'asc');
-    //     }
-
-    //     $leads = $leadsQuery->get();
-
-    //     $data = $leads->map(function ($lead) {
-    //         return [
-    //             'id' => $lead->id,
-    //             'business_name' => $lead->business->name ?? '',
-    //             'owner_name' => $lead->business ? $lead->business->owner_first_name . ' ' . $lead->business->owner_last_name : 'No Owner Name',
-    //             'owner_email' => $lead->business->owner_email ?? '',
-    //             'assigned_to' => $lead->user ? $lead->user->first_name . ' ' . $lead->user->last_name : 'Not Assigned',
-    //             'assigned_email' => $lead->user->email ?? '',
-    //             'Status' => $lead->leadStatus(),
-    //             'visit_date' => $lead->visit_date,
-    //             'created_at' => $lead->created_at->format('Y-m-d'),
-    //             'assigned_on' => $lead->created_at->format('Y-m-d'),
-    //         ];
-    //     });
-
-    //     return view('TeamReport.TeamView', [
-    //         'title' => 'Teams | Reports',
-    //         'leads' => $data,
-    //         'Options' => $Options,
-    //         'selectedFilter' => $filter,
-    //         'table' => 'tableReport',
-    //         'recordsTotal' => $count,
-    //         'recordsFiltered' => $count,
-    //         'search' => $search,
-    //     ]);
-    // }
+    private function applyFilters($request)
+    {
+        $filter = $request->get('filter', 'overall');
+        $search = $request->input('search.value');
+        $leadsQuery = Leads::with(['business', 'user'])->orderBy('created_at', 'desc');
+    
+        switch ($filter) {
+            case 'day_wise':
+                $selectedDate = $request->input('selected_date');
+                if ($selectedDate) {
+                    $leadsQuery->whereDate('created_at', $selectedDate);
+                }
+                break;
+            case 'team_member_wise':
+                $selectedMemberId = $request->input('selected_member');
+                if ($selectedMemberId) {
+                    $leadsQuery->where('team_id', $selectedMemberId);
+                }
+                break;
+            case 'conversation_wise':
+                $conversationType = $request->input('conversation_type');
+                if ($conversationType === 'pending') {
+                    $leadsQuery->where('ti_status', 2);
+                } elseif ($conversationType === 'complete') {
+                    $leadsQuery->where('ti_status', 1);
+                }
+                break;
+        }
+    
+        if ($search) {
+            $leadsQuery->where(function ($query) use ($search) {
+                $query->whereHas('business', function ($query) use ($search) {
+                    $query->where('name', 'like', "%$search%")
+                        ->orWhere('owner_first_name', 'like', "%$search%")
+                        ->orWhere('owner_last_name', 'like', "%$search%");
+                })->orWhereHas('user', function ($query) use ($search) {
+                    $query->where('first_name', 'like', "%$search%")
+                        ->orWhere('last_name', 'like', "%$search%")
+                        ->orWhere('email', 'like', "%$search%");
+                });
+            });
+        }
+    
+        return $leadsQuery;
+    }
+    
     public function TeamReport(Request $request)
     {
         $Options = [
             'day_wise' => 'Date',
-            'team_member_wise' => 'Team Member ',
+            'team_member_wise' => 'User Member ',
             'conversation_wise' => 'Conversation ',
             'overall' => 'All'
         ];
-    
+
         $filter = $request->get('filter', 'overall');
         $search = $request->input('search.value');
-    
+
         // Initialize the leads query
         $leadsQuery = Leads::with(['business', 'user'])
-                            ->orderBy('created_at', 'desc');
-    
+            ->orderBy('created_at', 'desc');
+
         // Apply filters based on the selected option
         switch ($filter) {
             case 'day_wise':
@@ -481,58 +345,57 @@ public function showLeads($id, Request $request)
                     $leadsQuery->whereDate('created_at', $selectedDate);
                 }
                 break;
-                case 'team_member_wise':
-                    // Fetch team members
-                    $teamMembers = User::whereDoesntHave('roles')
-                                        ->orWhereHas('roles', function ($query) {
-                                            $query->where('name', 'user');
-                                        })
-                                        ->get();
-                    // Filter leads by the selected team member
-                    $selectedMemberId = $request->input('selected_member');
-                    if ($selectedMemberId) {
-                        $leadsQuery->where('team_id', $selectedMemberId); // Adjust the column name here
-                    }
-                    break;                
-                case 'conversation_wise':
-                    // Check if conversation type is selected
-                    $conversationType = $request->input('conversation_type');
-                    if ($conversationType === 'pending') {
-                        $leadsQuery->where('ti_status', 2);
-                    } elseif ($conversationType === 'complete') {
-                        $leadsQuery->where('ti_status', 1);
-                    }
-                    break;
+            case 'team_member_wise':
+                // Fetch team members
+                $teamMembers = User::whereDoesntHave('roles')
+                    ->orWhereHas('roles', function ($query) {
+                        $query->where('name', 'user');
+                    })
+                    ->get();
+                // Filter leads by the selected team member
+                $selectedMemberId = $request->input('selected_member');
+                if ($selectedMemberId) {
+                    $leadsQuery->where('team_id', $selectedMemberId); // Adjust the column name here
+                }
+                break;
+            case 'conversation_wise':
+                // Check if conversation type is selected
+                $conversationType = $request->input('conversation_type');
+                if ($conversationType === 'pending') {
+                    $leadsQuery->where('ti_status', 2);
+                } elseif ($conversationType === 'complete') {
+                    $leadsQuery->where('ti_status', 1);
+                }
+                break;
             default:
                 // No additional filtering required for overall report
                 break;
         }
-    
+
         // Apply search filter
         if ($search) {
             $leadsQuery->where(function ($query) use ($search) {
                 // Add relevant fields for searching
                 $query->whereHas('business', function ($query) use ($search) {
                     $query->where('name', 'like', "%$search%")
-                          ->orWhere('owner_first_name', 'like', "%$search%")
-                          ->orWhere('owner_last_name', 'like', "%$search%");
+                        ->orWhere('owner_first_name', 'like', "%$search%")
+                        ->orWhere('owner_last_name', 'like', "%$search%");
                 })->orWhereHas('user', function ($query) use ($search) {
                     $query->where('first_name', 'like', "%$search%")
-                          ->orWhere('last_name', 'like', "%$search%")
-                          ->orWhere('email', 'like', "%$search%");
+                        ->orWhere('last_name', 'like', "%$search%")
+                        ->orWhere('email', 'like', "%$search%");
                 });
             });
         }
-    
         // Fetch leads data
         $leads = $leadsQuery->get();
-    
+      
         // Map the data
         $data = $leads->map(function ($lead) {
             return [
                 'id' => $lead->id,
                 'business_name' => $lead->business->name ?? '',
-                'owner_name' => $lead->business ? $lead->business->owner_first_name . ' ' . $lead->business->owner_last_name : 'No Owner Name',
+                'owner_full_name' => $lead->business->owner_full_name ?? '',
                 'owner_email' => $lead->business->owner_email ?? '',
                 'assigned_to' => $lead->user ? $lead->user->first_name . ' ' . $lead->user->last_name : 'Not Assigned',
                 'assigned_email' => $lead->user->email ?? '',
@@ -543,7 +406,7 @@ public function showLeads($id, Request $request)
             ];
         });
         $selectedDate = $request->input('selected_date', ''); // Fetch the selected date from the request parameters, defaulting to an empty string if not set
-
+      
         return view('TeamReport.TeamView', [
             'title' => 'Teams | Reports',
             'leads' => $data,
@@ -555,15 +418,33 @@ public function showLeads($id, Request $request)
             'teamMembers' => $teamMembers ?? null, // Pass team members to the view
         ]);
     }
-    
-    
 
     public function showDetail($id)
     {
-
         $lead = Leads::with(['business', 'user'])->findOrFail($id);
 
-        // Return your detailed view or data
-        return view('TeamReport.DetailView', compact('lead'));
+        $leadLat = round($lead->latitude, 5);
+        $leadLong = round($lead->longitude, 5);
+        $businessLat = round($lead->business->latitude, 5);
+        $businessLong = round($lead->business->longitude, 5);
+
+        $coordinatesMatch = !is_null($leadLat) && !is_null($businessLat) &&
+            !is_null($leadLong) && !is_null($businessLong) &&
+            $leadLat == $businessLat &&
+            $leadLong == $businessLong;
+
+        return view('TeamReport.DetailView', compact('lead', 'coordinatesMatch'));
     }
+    public function export(Request $request)
+    {
+        // Apply the same filters as in the teamReport method
+        $leadsQuery = $this->applyFilters($request);
+        $leads = $leadsQuery->get();
+    
+        // Generate Excel export using LeadsExport class
+        $export = new LeadsExport($leads);
+        return Excel::download($export, 'leads.xlsx');
+    }
+    
+
 }

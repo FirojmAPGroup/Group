@@ -10,10 +10,12 @@
             <li><a class="has-arrow" href="javascript:void()" aria-expanded="false"><i
                         class="mdi mdi-account"></i><span class="nav-text">Users</span></a>
                 <ul aria-expanded="false">
-                    <li class=" {{ in_array(routeCurrName(),['subadmin.list','subadmin.create','subadmin.edit']) ? 'mm-active' : '' }}"><a href="{{ routePut('subadmin.list') }}">Sub Admin</a></li>
-                    <li><a class="has-arrow" href="javascript:void()" aria-expanded="false">Team</a>
+                    <li class=" {{ in_array(routeCurrName(),['subadmin.list','subadmin.create','subadmin.edit']) ? 'mm-active' : '' }}">
+                        <a href="{{ routePut('subadmin.list') }}">Sub Admin</a>
+                    </li>
+                    <li><a class="has-arrow" href="javascript:void()" aria-expanded="false">User</a>
                         <ul aria-expanded="false">
-                            <li><a href="{{ routePut('teams.list') }}">Team List</a></li>
+                            <li><a href="{{ routePut('teams.list') }}">User List</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -31,7 +33,7 @@
                 <a href="{{ routePut('teams.view') }}">
                     <i class="fa fa-clipboard" style="font-size:14px">      
                     </i> 
-                    <span class="nav-text">Report</span>
+                    <span class="nav-text">Reports</span>
                     
                 </a>
             </li>

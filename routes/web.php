@@ -28,6 +28,8 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
        });
        Route::group(['middleware'=>['user']],function (){
             Route::get('', 'DashboardController@dashboard')->name('app.dashboard');
+            Route::post('/dashboard/data', 'DashboardController@getData')->name('dashboard.data');
+            Route::get('/dashboard/export', 'DashboardController@exportData')->name('dashboard.export');
             Route::match(['get','post'],'/today-visits','LeadsController@todayVisit')->name('app.todayVisits');
             Route::get('/calculateDistance','LeadsController@calculateDistance')->name('app.calculateDistance');
 
@@ -48,6 +50,8 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
             Route::post('sub-admin/approve/{id}', 'SubAdminController@statusChange')->name('subadmin.aprove');
             Route::post('sub-admin/reject/{id}', 'SubAdminController@statusChange')->name('subadmin.reject');
             Route::post('sub-admin/block/{id}', 'SubAdminController@statusChange')->name('subadmin.block');
+            Route::get('/sub-admin/view/{id}', 'SubAdminController@view')->name('subadmin.view');
+
             //Teams
 
             Route::get('teams', 'TeamsController@index')->name('teams.list');
@@ -63,6 +67,7 @@ Route::group(['prefix' => '', 'namespace' => '\App\Http\Controllers', 'middlewar
 
               // TeamReport
             Route::get('team/report', 'TeamsController@TeamReport')->name('teams.view');
+            Route::get('team/report/export', 'TeamsController@export')->name('teams.export');
             Route::post('team/loadlist', 'TeamsController@loadLists')->name('teams.load');
             Route::get('team/detail/{id}', 'TeamsController@showDetail')->name('teams.detail');
             

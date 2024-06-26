@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 @extends('layouts.app')
 @push('css')
     <link rel="stylesheet" href="{{ pathAssets('vendor/datatables/css/jquery.dataTables.min.css') }}">
@@ -52,7 +46,7 @@
                                 <th data-data="owner_number"> Number</th>
                                 <th data-data="city">City</th>
                                 <th data-data="ti_status">Status</th>
-                                <th data-data="assigned_user_name"> Team Name</th>
+                                <th data-data="assigned_user_name"> User Name</th>
                                 <th data-data="details">Details</th>
                                 <th data-data="actions" data-sortable="false">Action</th>
                             </tr>
@@ -115,7 +109,12 @@
 @push('script')
 <script>
     jQuery(document).ready(function() {
-        dtTable = applyDataTable('#{{$table}}', '{!! $urlListData ?? "" !!}', {});
+        dtTable = applyDataTable('#{{ $table }}', '{!! $urlListData ?? "" !!}', {
+            "language": {
+                "search": "_INPUT_",
+                "searchPlaceholder": "Search with Company name, Name, Email, Number or City "
+            }
+        });
     });
 
     function displayFileName() {

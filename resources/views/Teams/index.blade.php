@@ -6,7 +6,7 @@
 <div class="row page-titles trust-wave mx-0">
     <div class="col-sm-6 p-md-0">
         <div class="welcome-text ">
-            <h4>Teams</h4>
+            <h4>User's</h4>
         </div>
     </div>
     <div class="col-sm-6 p-md-0 d-flex justify-content-end">

@@ -100,7 +100,9 @@ public function getProfileImage()
         return url($this->profile_image);
     } else {
         // Provide a default image URL if necessary
-        return ('no image found');
+        // return ('no image found');
+        return url($this->profile_image);
+
     }
 }
 

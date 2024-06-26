@@ -12,10 +12,16 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\NewLeadNotification;
+use App\Services\GeocodingService;
 
 class LeadsController extends Controller
 {
+    protected $geocodingService;
 
+    public function __construct(GeocodingService $geocodingService)
+    {
+        $this->geocodingService = $geocodingService;
+    }
     public function getPendingLeads(Request $request)
     {
         $user = Auth::guard('api')->user();
@@ -33,24 +39,24 @@ class LeadsController extends Controller
 
         // Get count of all pending leads for the user's team
         $totalPendingLeadsCount = Leads::where('team_id', $teamId)
-            ->whereIn('leads.ti_status', [0, 2])
+            ->whereIn('leads.ti_status', [0, 2,3])
             ->count();
 
         // Get count of today's pending leads
         $todayPendingLeadsCount = Leads::where('team_id', $teamId)
-            ->whereIn('leads.ti_status', [0, 2])
+            ->whereIn('leads.ti_status', [0, 2,3])
             ->whereDate('visit_date', $today)
             ->count();
 
         // Get count of yesterday's pending leads
         $yesterdayPendingLeadsCount = Leads::where('team_id', $teamId)
-            ->whereIn('leads.ti_status', [0, 2])
+            ->whereIn('leads.ti_status', [0, 2,3])
             ->whereDate('visit_date', $yesterday)
             ->count();
 
         // Get count of last week's pending leads
         $lastWeekPendingLeadsCount = Leads::where('team_id', $teamId)
-            ->whereIn('leads.ti_status', [0, 2])
+            ->whereIn('leads.ti_status', [0, 2,4])
             ->whereBetween('visit_date', [$lastWeekStart, $lastWeekEnd])
             ->count();
 
@@ -84,7 +90,7 @@ class LeadsController extends Controller
         // Filter leads based on the date filter
         $leadsPending = Leads::with('hasBusiness')
             ->where('team_id', $teamId)
-            ->whereIn('leads.ti_status', [0, 2])
+            ->whereIn('leads.ti_status', [0, 2,3])
             ->when($dateFilter === 'today', function ($query) use ($today) {
                 return $query->whereDate('visit_date', $today);
             })
@@ -142,14 +148,15 @@ class LeadsController extends Controller
                 'visit_date' => $lead->visit_date ?? "N/A",
                 'business_id' => $business->id ?? 'N/A',
                 'Name' => $business->name ?? 'N/A',
-                'lead_first_name' => $business->owner_first_name ?? 'N/A',
-                'lead_last_name' => $business->owner_last_name ?? 'N/A',
+                'lead_full_name' => $business->owner_full_name ?? 'N/A',
                 'lead_email' => $business->owner_email ?? 'N/A',
                 'lead_number' => $business->owner_number ?? 'N/A',
                 'pincode' => $business->pincode ?? 'N/A',
-                'lead_latitude' => $lead->latitude ?? 0.0000,
-                'lead_longitude' => $lead->longitude ?? 0.0000,
-                'lead_date' => $leadDate // New field indicating 'today', 'yesterday', 'last_week', or 'other'
+                'lead_latitude' => $business->latitude ?? 0.0000,
+                'lead_longitude' => $business->longitude ?? 0.0000,
+                'lead_date' => $leadDate, // New field indicating 'today', 'yesterday', 'last_week', or 'other'
+                'selfie' => $lead->selfie ? url('uploads/selfie/' . $lead->selfie) : 'N/A',
+
             ];
         }
 
@@ -191,7 +198,7 @@ class LeadsController extends Controller
 
         // Get count of all pending leads for the user's team
         $totalPendingLeadsCount = Leads::where('team_id', $teamId)
-            ->whereIn('leads.ti_status', [0, 2])
+            ->whereIn('leads.ti_status', [0, 2,3])
             ->count();
 
         // Get count of today's done leads
@@ -214,19 +221,19 @@ class LeadsController extends Controller
 
         // Get count of today's pending leads
         $todayPendingLeadsCount = Leads::where('team_id', $teamId)
-            ->whereIn('leads.ti_status', [0, 2])
+            ->whereIn('leads.ti_status', [0, 2,3])
             ->whereDate('visit_date', $today)
             ->count();
 
         // Get count of yesterday's pending leads
         $yesterdayPendingLeadsCount = Leads::where('team_id', $teamId)
-            ->whereIn('leads.ti_status', [0, 2])
+            ->whereIn('leads.ti_status', [0, 2,3])
             ->whereDate('visit_date', $yesterday)
             ->count();
 
         // Get count of last week's pending leads
         $lastWeekPendingLeadsCount = Leads::where('team_id', $teamId)
-            ->whereIn('leads.ti_status', [0, 2])
+            ->whereIn('leads.ti_status', [0, 2,3])
             ->whereBetween('visit_date', [$lastWeekStart, $lastWeekEnd])
             ->count();
 
@@ -291,14 +298,15 @@ class LeadsController extends Controller
                 'visit_date' => $lead->visit_date ?? "N/A",
                 'business_id' => $business->id ?? 'N/A',
                 'Name' => $business->name ?? 'N/A',
-                'lead_first_name' => $business->owner_first_name ?? 'N/A',
-                'lead_last_name' => $business->owner_last_name ?? 'N/A',
+                'lead_full_name' => $business->owner_full_name ?? 'N/A',
                 'lead_email' => $business->owner_email ?? 'N/A',
                 'lead_number' => $business->owner_number ?? 'N/A',
                 'pincode' => $business->pincode ?? 'N/A',
-                'lead_latitude' => $lead->latitude ?? 0.0000,
-                'lead_longitude' => $lead->longitude ?? 0.0000,
-                'lead_date' => $leadDate // New field indicating 'today', 'yesterday', 'last_week', or 'other'
+                'lead_latitude' => $business->latitude ?? 0.000000,
+                'lead_longitude' => $business->longitude ?? 0.000000,
+                'lead_date' => $leadDate, // New field indicating 'today', 'yesterday', 'last_week', or 'other'
+                'selfie' => $lead->selfie ? url('uploads/selfie/' . $lead->selfie) : 'N/A',
+
             ];
         }
 
@@ -378,13 +386,16 @@ class LeadsController extends Controller
                     'visit_date' => $lead->visit_date ?? 'N/A',
                     'business_id' => $business->id ?? 'N/A',
                     'Name' => $business->name ?? 'N/A',
-                    'lead_first_name' => $business->owner_first_name ?? 'N/A',
-                    'lead_last_name' => $business->owner_last_name ?? 'N/A',
+                    'lead_full_name' => $business->owner_full_name ?? 'N/A',
                     'lead_email' => $business->owner_email ?? 'N/A',
                     'lead_number' => $business->owner_number ?? 'N/A',
                     'pincode' => $business->pincode ?? 'N/A',
-                    'lead_latitude' => $lead->latitude ?? 0.0000,
-                    'lead_longitude' => $lead->longitude ?? 0.0000,
+                    'lead_latitude' => $business->latitude ?? 0.0000,
+                    'lead_longitude' => $business->longitude ?? 0.0000,
+                    'selfie' => $lead->selfie ? url('uploads/selfie/' . $lead->selfie) : 'N/A',
+
+
+
                 ];
             }
 
@@ -537,11 +548,8 @@ class LeadsController extends Controller
     public function createLead()
     {
         try {
-            //    dd(request()->all());
-
             $validator = Validator::make(request()->all(), [
-                'owner_first_name' => 'required|max:25',
-                'owner_last_name' => 'required|max:25',
+                'owner_full_name' => 'required|max:55',
                 'owner_number' => 'required|digits:10',
                 'owner_email' => 'required|email',
                 'company_name' => 'required|max:50',
@@ -550,8 +558,8 @@ class LeadsController extends Controller
                 'city' => 'required|max:25',
                 'area' => 'required|max:25',
                 'pincode' => 'required|digits:6',
-                'latitude' => 'nullable|max:10',
-                'longitude' => 'nullable|max:10'
+                'address'=>'required|'
+           
             ]);
             if ($validator->fails()) {
                 return response()->json([
@@ -560,10 +568,28 @@ class LeadsController extends Controller
                     'message' => $validator->errors()->first()
                 ], 401);
             }
+            // Get the address components from the request
+            $country = request()->get('country');
+            $state = request()->get('state');
+            $city = request()->get('city');
+            $pincode = request()->get('pincode');
+            $area = request()->get('area');
+            $address = request()->get('address');
+    
+            // Log the address components
+            \Log::info('Geocoding address components: Country=' . $country . ', State=' . $state . ', City=' . $city . ', Pincode=' . $pincode . ', Area=' . $area . ', Address=' . $address);
+    
+            // Get coordinates
+            $coordinates = $this->geocodingService->getCoordinates($country, $state, $city, $pincode, $area, $address);
+    
+            if (!$coordinates) {
+                \Log::error('Unable to get coordinates for the given address components.');
+                return $this->resp(0, 'Unable to get coordinates for the given address.', [], 500);
+            }
+    
             $leadData = [
                 'name' => request()->get('company_name'),
-                'owner_first_name' => request()->get('owner_first_name'),
-                'owner_last_name' => request()->get('owner_last_name'),
+                'owner_full_name' => request()->get('owner_full_name'),
                 'owner_number' => request()->get('owner_number'),
                 'owner_email' => request()->get('owner_email'),
                 'ti_status' => 0,
@@ -572,9 +598,13 @@ class LeadsController extends Controller
                 'state' => request()->get('state'),
                 'country' => request()->get('country'),
                 'area' => request()->get('area'),
-                'latitude' => request()->get('latitude') ?? 0,  // Default value
-                'longitude' => request()->get('longitude') ?? 0,  // Default value
+                'address'=>request()->get('address'),
+                'latitude' => $coordinates['latitude'],
+                'longitude' => $coordinates['longitude'],
+                // 'latitude' => request()->get('latitude') ?? 0,  // Default value
+                // 'longitude' => request()->get('longitude') ?? 0,  // Default value
             ];
+            
             $business = Business::create($leadData);
 
             $users = User::find(Auth::guard('api')->user()->id);
@@ -611,8 +641,7 @@ class LeadsController extends Controller
                 'longitude' => 'required',
                 // lead 
                 'name' => 'required',
-                'owner_first_name' => 'required',
-                'owner_last_name' => 'required',
+                'owner_full_name' => 'required',
                 'owner_number' => 'required|digits:10',
                 'owner_email' => 'required|email',
                 'country' => 'required',
@@ -635,8 +664,7 @@ class LeadsController extends Controller
 
                 if ($business) { // Check if the business object exists
                     $business->name = request()->get('name');
-                    $business->owner_first_name = request()->get('owner_first_name');
-                    $business->owner_last_name = request()->get('owner_last_name');
+                    $business->owner_full_name = request()->get('owner_full_name');
                     $business->owner_email = request()->get('owner_email');
                     $business->owner_number = request()->get('owner_number');
                     $business->country = request()->get('country');

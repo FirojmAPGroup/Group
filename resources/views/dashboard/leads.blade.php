@@ -15,7 +15,7 @@
     <div class="col p-md-0 d-flex justify-content-end" >
         <div class="dropdown">
             <button class="btn btn-secondary dropdown-toggle" type="button" id="teamMemberDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Select Team Member
+                Select User Member
             </button>
             <div class="dropdown-menu" aria-labelledby="teamMemberDropdown" style="max-height: 200px; overflow-y: auto;">
                 <a class="dropdown-item" href="#" data-member-id="all">Show All</a>
@@ -30,6 +30,7 @@
                 <input type="hidden" name="member_id" id="exportMemberId" value="">
                 <button type="submit" class="btn btn-primary">Export to Excel</button>
             </form>
+        
         </div>
     </div>
     
@@ -46,7 +47,7 @@
                                 <th data-data="owner_full_name" style="width: 20%;"> Full Name</th>
                                 <th data-data="owner_number" style="width: 15%;"> Number</th>
                                 <th data-data="ti_status" style="width: 15%;">Status</th>
-                                <th data-data="user_full_name" style="width: 20%;">Team Full Name</th>
+                                <th data-data="user_full_name" style="width: 20%;">User Full Name</th>
                                 <th data-data="details" data-sortable="false" style="width: 10%;">Details</th>
                             </tr>
                         </thead>
@@ -65,37 +66,11 @@
 @endpush
 
 @push('script')
-{{-- <script>
-    jQuery(document).ready(function() {
-        var dtTable;
-        var selectedMemberName = '';
 
-        // Function to reload DataTable with selected team member
-        function reloadDataTable(memberId) {
-            dtTable.ajax.url('{{ $urlListData }}' + '?member_id=' + memberId).load();
-        }
-
-        // Function to update selected member name in the dropdown button
-        function updateSelectedMemberName(memberName) {
-            selectedMemberName = memberName;
-            $('#teamMemberDropdown').html(selectedMemberName);
-        }
-
-        // Initialize DataTable
-        dtTable = applyDataTable('#{{ $table }}', '{{ $urlListData }}', {});
-
-        // Handle team member selection
-        $('.dropdown-item').click(function(e) {
-            e.preventDefault();
-            var memberId = $(this).data('member-id');
-            var memberName = $(this).text();
-            updateSelectedMemberName(memberName);
-            reloadDataTable(memberId);
-        });
-    });
-</script> --}}
 @push('script')
-<script>
+
+{{-- <script>
+    
     jQuery(document).ready(function() {
         var dtTable;
         var selectedMemberName = '';
@@ -138,7 +113,69 @@
 
     });
 
-</script>
+</script> --}}
+<script>
+    jQuery(document).ready(function() {
+        var dtTable;
+        var selectedMemberName = '';
+    
+        // Function to reload DataTable with selected team member
+        function reloadDataTable(memberId) {
+            var url = '{{ $urlListData }}';
+            if (memberId !== 'all') {
+                url += '?member_id=' + memberId;
+            }
+            dtTable.ajax.url(url).load();
+        }
+    
+        // Function to update selected member name in the dropdown button
+        function updateSelectedMemberName(memberName) {
+            selectedMemberName = memberName;
+            $('#teamMemberDropdown').html(selectedMemberName);
+        }
+    
+        // Initialize DataTable with search placeholder
+        dtTable = applyDataTable('#{{ $table }}', '{{ $urlListData }}', {
+            "initComplete": function () {
+                this.api().columns().every(function () {
+                    var column = this;
+                    var headerText = $(column.header()).text().trim();
+                    $(column.footer()).html('<input type="text" placeholder="Search ' + headerText + '" />');
+    
+                    // Apply search functionality
+                    $('input', column.footer()).on('keyup change', function () {
+                        if (column.search() !== this.value) {
+                            column.search(this.value).draw();
+                        }
+                    });
+                });
+    
+                // Add placeholder to main search input
+                $('.dataTables_filter input').attr('placeholder', 'Search with Full Name, Company name Or Number');
+            }
+        });
+    
+        // Handle team member selection
+        $('.dropdown-item').click(function(e) {
+            e.preventDefault();
+            var memberId = $(this).data('member-id');
+            var memberName = $(this).text();
+            updateSelectedMemberName(memberName);
+            reloadDataTable(memberId);
+        });
+    
+        $('table').on('draw.dt', function () {
+            $('td[data-data="owner_full_name"]').each(function () {
+                var text = $(this).text();
+                if (text.length > 20) {
+                    $(this).text(text.substring(0, 20) + '...'); // Adjusted to show up to 20 characters
+                }
+            });
+        });
+    
+    });
+    </script>
+    
 @endpush
 
 

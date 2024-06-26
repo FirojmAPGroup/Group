@@ -19,7 +19,14 @@ class SubAdminController extends Controller
             'urlListData'=>routePut('subadmin.load-list'),'table' => 'tableSubAdmin'
         ]);
     }
+    public function view($id)
+    {
+        $subAdmin = User::findOrFail($id)->load('roles');
 
+        return view('subadmin.view', [
+            'subAdmin' => $subAdmin
+        ]);
+    }
     public function loadList(){
         try {
 			$q = User::with("roles")->whereHas("roles", function($q) {
@@ -58,7 +65,7 @@ class SubAdminController extends Controller
                         'approve'=>auth()->user()->can('admin approve') && $single->getStatus()!= 1 ?routePut('subadmin.aprove',['id'=>encrypt($single->getId())]):'',
                         'reject'=>auth()->user()->can('admin reject') && $single->getStatus()!= 0 ?routePut('subadmin.reject',['id'=>encrypt($single->getId())]):'',
                         'block'=>auth()->user()->can('admin block') && $single->getStatus()!= 2 ?routePut('subadmin.block',['id'=>encrypt($single->getId())]):'',
-                        'view' =>route('profile.view', ['id' => $single->id]),
+                        'view' =>route('subadmin.view', ['id' => $single->id]),
 
 					]))
 				];
@@ -74,14 +81,22 @@ class SubAdminController extends Controller
 			return $this->resp(0, exMessage($th), [], 500);
 		}
     }
-
     public function create(){
-        $permission = Permission::all()->pluck('name','name')->toArray();
-        $subAdmin = new User();
-        $selectedPermission = [];
-        return view('SubAdmin.form',['heading'=>"Create",'title'=>"Create Sub Admin",'permission'=>$permission,'user'=>$subAdmin,'selectedPermission'=>$selectedPermission]);
-    }
+        // $permissions = Permission::all()->groupBy(function($item) {
+        //     return explode(' ', $item->name)[0];
+        // });
+        $allPermissions = $this->getGroupedPermissions();
 
+        $subAdmin = new User();
+        $selectedPermissions = [];
+        return view('SubAdmin.form', [
+            'heading' => "Create",
+            'title' => "Create Sub Admin",
+            'permissions' => $allPermissions,
+            'user' => $subAdmin,
+            'selectedPermissions' => $selectedPermissions
+        ]);
+    }
     public function save()
     {
         try {
@@ -167,29 +182,42 @@ class SubAdminController extends Controller
             return $this->resp(0, $th->getMessage(), [], 500);
         }
     }
-    
-
-    public function edit($id){
+  
+    public function edit($id)
+    {
         try {
-            if(useId($id)){
-                $subAdmin = User::find(useId($id));
-                if($subAdmin){
-                    $permission = $subAdmin->getAllPermissions();
-                    $selectedPermission=$permission->pluck('name')->toArray();
-                    $permission = Permission::all()->pluck('name','name')->toArray();
-                    return view('SubAdmin.form',['heading'=>"Edit",'title'=>"Edit Sub Admin",'permission'=>$permission,'user'=>$subAdmin,'selectedPermission'=>$selectedPermission]);
-                }
-                return redirect()->route('subadmin.list')->with('error',"sub admin not found");
-            } else {
-                return redirect()->route('subadmin.list')->with('error',"sub admin not found");
+            $userId = useId($id);
+    
+            if (!$userId) {
+                return redirect()->route('subadmin.list')->with('error', "Invalid ID");
             }
+    
+            $subAdmin = User::find($userId);
+    
+            if (!$subAdmin) {
+                return redirect()->route('subadmin.list')->with('error', "Sub admin not found");
+            }
+    
+            // Fetch all permissions available in the system
+            $allPermissions = $this->getGroupedPermissions();
+    
+            // Get selected permissions for the current subAdmin
+            $selectedPermissions = $subAdmin->getAllPermissions()->pluck('name')->toArray();
+    
+            return view('SubAdmin.form', [
+                'heading' => "Edit",
+                'title' => "Edit Sub Admin",
+                'permissions' => $allPermissions,
+                'user' => $subAdmin,
+                'selectedPermissions' => $selectedPermissions
+            ]);
+    
         } catch (\Throwable $th) {
-            return redirect()->route('subadmin.list')->with('error',"sub admin not found");
+            \Log::error($th);
+            return redirect()->route('subadmin.list')->with('error', "An error occurred");
         }
-
-
     }
-
+    
     public function delete($id){
         if ($single = User::find(useId($id))) {
             $single->delete();
@@ -226,6 +254,48 @@ class SubAdminController extends Controller
             }
         }
 
+    }
+    private function getGroupedPermissions()
+    {
+        // Define your permission groups and their corresponding permissions
+        $permissions = [
+            'Dashboard' => [
+                'dashboard view',
+            ],
+            'Location' => [
+                'location view',
+            ],
+            'Leads' => [
+                'leads approve',
+                'leads reject',
+                'leads block',
+                'leads delete',
+            ],
+            'User' => [
+                'user approve',
+                'user reject',
+                'user block',
+                'user edit',
+                'user delete',
+            ],
+            'Admin' => [
+                'admin approve',
+                'admin reject',
+                'admin block',
+                'admin edit',
+                'admin delete',
+            ],
+        ];
+
+        // Transform the permissions array into a format suitable for the view
+        $groupedPermissions = [];
+        foreach ($permissions as $group => $perms) {
+            foreach ($perms as $permission) {
+                $groupedPermissions[$group][] = $permission;
+            }
+        }
+
+        return $groupedPermissions;
     }
 }
 

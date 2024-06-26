@@ -26,24 +26,15 @@
                             </div>
                             <div class="col-md-12">
                                 <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="owner_name"> Lead First Name
+                                    <label class="col-lg-2 col-form-label" for="owner_name"> Lead Full Name
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="owner_first_name" name="owner_first_name" placeholder="Lead First Name" value="{{ $business->owner_first_name }}" disabled required>
+                                        <input type="text" class="form-control" id="owner_full_name" name="owner_full_name" placeholder="Lead Full Name" value="{{ $business->owner_full_name }}" disabled required>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-12">
-                                <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="owner_name">Lead Last Name
-                                        <span class="text-danger">*</span>
-                                    </label>
-                                    <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="owner_last_name" name="owner_last_name" placeholder="Lead Last Name" value="{{ $business->owner_last_name }}" disabled required>
-                                    </div>
-                                </div>
-                            </div>
+                          
                             <div class="col-md-12">
                                 <div class="form-group row">
                                     <label class="col-lg-2 col-form-label" for="owner_name">Lead Number
@@ -104,6 +95,17 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-md-12">
+                                <div class="form-group row">
+                                    <label class="col-lg-2 col-form-label" for="Address">Address
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="col-lg-8 col-md-12">
+                                        <textarea name="Address" id="Address"  placeholder="Address" style="width: 711px; height: 100px; resize:none !important">{{ $business->address }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="col-md-12">
                                 <div class="form-group row">
                                     <label class="col-lg-2 col-form-label" for="pincode">Pincode

@@ -42,9 +42,24 @@
     <script src="{{ pathAssets('vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
 @endpush
 @push('script')
-<script>
+{{-- <script>
     jQuery(document).ready(function() {
       dtTable = applyDataTable('#{{$table}}', '{!! $urlListData ?? "" !!}', {});
     });
-  </script>
+    
+  </script> --}}
+
+  @push('script')
+<script>
+    jQuery(document).ready(function() {
+        dtTable = applyDataTable('#{{ $table }}', '{!! $urlListData ?? "" !!}', {
+            "language": {
+                "search": "_INPUT_",
+                "searchPlaceholder": "Search with First name, Last name Or Email "
+            }
+        });
+    });
+</script>
+@endpush
+
 @endpush

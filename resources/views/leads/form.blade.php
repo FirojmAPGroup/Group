@@ -28,24 +28,15 @@
                             </div>
                             <div class="col-md-12">
                                 <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="owner_first_name">Lead First Name
+                                    <label class="col-lg-2 col-form-label" for="owner_full_name">Lead Full Name
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="owner_first_name" name="owner_first_name" placeholder="Lead First Name" value="{{ old('owner_first_name', $business->owner_first_name) }}" required>
+                                        <input type="text" class="form-control" id="owner_full_name" name="owner_full_name" placeholder="Lead Full Name" value="{{ old('owner_full_name', $business->owner_full_name) }}" required>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-12">
-                                <div class="form-group row">
-                                    <label class="col-lg-2 col-form-label" for="owner_last_name">Lead Last Name
-                                        <span class="text-danger">*</span>
-                                    </label>
-                                    <div class="col-lg-8 col-md-12">
-                                        <input type="text" class="form-control" id="owner_last_name" name="owner_last_name" placeholder="Lead Last Name" value="{{ old('owner_last_name', $business->owner_last_name) }}" required>
-                                    </div>
-                                </div>
-                            </div>
+                           
                             <div class="col-md-12">
                                 <div class="form-group row">
                                     <label class="col-lg-2 col-form-label" for="owner_number">Lead Number
@@ -108,6 +99,17 @@
                             </div>
                             <div class="col-md-12">
                                 <div class="form-group row">
+                                    <label class="col-lg-2 col-form-label" for="Address">Address
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="col-lg-8 col-md-12">
+                                        <textarea name="Address" id="Address"  placeholder="Address" style="width: 711px; height: 100px; resize:none !important" value="{{ old('Address', $business->address) }}">{{ $business->address }}</textarea>
+                                        {{-- <input type="text" class="form-control" id="Address" name="Address" placeholder="Address" value="{{ old('Address', $business->address) }}" required title="Please enter a address"> --}}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-group row">
                                     <label class="col-lg-2 col-form-label" for="pincode">Pincode
                                         <span class="text-danger">*</span>
                                     </label>
@@ -116,19 +118,19 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-12">
+                            {{-- <div class="col-md-12">
                                 <div class="form-group row">
                                     <label class="col-lg-2 col-form-label" for="latitude">Location
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-lg-4 col-md-6 col-sm-12">
-                                        <input type="text" class="form-control" id="latitude" name="latitude" placeholder="Latitude" value="{{ old('latitude', $business->latitude) }}" required>
+                                        <input type="text" class="form-control" id="latitude" name="latitude" placeholder="Latitude" value="{{ old('latitude', $business->latitude) }}" disabled>
                                     </div>
                                     <div class="col-lg-4 col-md-6 col-sm-12">
-                                        <input type="text" class="form-control" id="longitude" name="longitude" placeholder="Longitude" value="{{ old('longitude', $business->longitude) }}" required>
+                                        <input type="text" class="form-control" id="longitude" name="longitude" placeholder="Longitude" value="{{ old('longitude', $business->longitude) }}" disabled>
                                     </div>
                                 </div>
-                            </div>
+                            </div> --}}
                             <div class="col-md-12">
                                 <div class="form-group row">
                                     <div class="col-lg-2"></div>
@@ -150,7 +152,7 @@
     <script src="{{ pathAssets('vendor/jquery-validation/jquery.validate.min.js') }}"></script>
 @endpush
 @push('script')
-<script>
+{{-- <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Get all input fields
         var inputs = document.querySelectorAll('input[type="text"], textarea');
@@ -169,5 +171,51 @@
     });
 
   
+</script> --}}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get all input fields
+        var inputs = document.querySelectorAll('input[type="text"], textarea');
+
+        // Function to capitalize the first letter of a string
+        function capitalizeFirstLetter(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Loop through each input field
+        inputs.forEach(function(input) {
+            input.addEventListener('input', function() {
+                this.value = capitalizeFirstLetter(this.value);
+            });
+        });
+
+        // Handle form submission
+        $('#frmLead').on('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            var formData = $(this).serialize(); // Serialize form data
+
+            $.ajax({
+                type: 'POST',
+                url: $(this).attr('action'),
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Handle success scenario (redirect or display success message)
+                        window.location.href = response.url;
+                    } else {
+                        // Handle error scenario
+                        console.error(response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error(error); // Log the error to console
+                }
+            });
+        });
+    });
 </script>
+
 @endpush

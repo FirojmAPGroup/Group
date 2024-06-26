@@ -74,15 +74,32 @@ trait TraitModel{
         }elseif($this->getStatus() == 2){
             return '<span class="badge badge-warning">Pending</span>';
         } elseif($this->getStatus() == 3) {
-            return '<span class="badge badge-info">Hold</span>';
+            return '<span class="badge badge-warning">Pending</span>';
         } elseif($this->getStatus() == 4){
             return '<span class="badge badge-danger">Reject</span>';
         }elseif($this->getStatus() == 5){
             return '<span class="badge badge-secondary">Assigned</span>';
         }elseif($this->getStatus() == 0){
-		return '<span class="badge bg-danger">Meeting</span>';
+            return '<span class="badge badge-warning">Pending</span>';
 		} else {
-            return '<span class="badge badge-dark">UnAssigned</span>';
+            return '<span class="badge badge-dark">Unassigned</span>';
         }
      }
+	 public function mapStatus() {
+		if($this->getStatus() == 1){
+            return '<span class="badge badge-success">Completed</span>';
+        }elseif($this->getStatus() == 2){
+            return '<span class="badge badge-warning">Pending</span>';
+        } elseif($this->getStatus() == 3) {
+            return '<span class="badge badge-warning">Pending</span>';
+        } elseif($this->getStatus() == 4){
+            return '<span class="badge badge-danger">Reject</span>';
+        }elseif($this->getStatus() == 5){
+            return '<span class="badge badge-secondary">Assigned</span>';
+        }elseif($this->getStatus() == 0){
+            return '<span class="badge badge-dark">Unassigned</span>';
+		} else {
+            return '<span class="badge badge-dark">Unassigned</span>';
+        }
+	    }
 }
